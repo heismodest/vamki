@@ -40,7 +40,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start;margin-bottom:16px}
 .grid > *{min-width:0}
 .grid > .panel, .grid > div > .panel:last-child{margin-bottom:0}
-.col{display:flex;flex-direction:column;gap:16px}
+.col{display:flex;flex-direction:column;gap:16px;}
 .col > .panel{margin-bottom:0}
 @media (max-width:980px){.grid{grid-template-columns:minmax(0,1fr)}}
 .statpanel{display:flex;flex-direction:column;min-height:0}
@@ -121,6 +121,34 @@ svg text{fill:var(--sub);font-size:11px;font-family:"Noto Sans KR",sans-serif}
 .pop .opt[disabled]{opacity:.35;cursor:not-allowed}
 .pop .opt.cur{border-color:var(--gold);background:var(--gold-soft)}
 .pop .opt .on{font-size:11px;color:var(--sub);display:block}
+
+  /* 레이아웃 겹침 방지 긴급 패치 */
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.panel {
+  position: relative;
+  overflow: hidden; /* 내부 요소가 바깥으로 삐져나와 겹치는 현상 차단 */
+  clear: both;
+}
+
+.pu {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 6px 14px;
+  margin-bottom: 10px;
+}
+
+.note {
+  position: static !important;
+  display: block !important;
+  clear: both !important;
+  margin-top: 8px;
+}
 </style>
 </head>
 <body>
@@ -152,11 +180,23 @@ svg text{fill:var(--sub);font-size:11px;font-family:"Noto Sans KR",sans-serif}
           <div><h3>장신구(패시브) <small>최대 6개 · 중복 불가</small></h3><div id="pslots"></div></div>
         </div>
       </section>
+
+      <!-- 수정 전
       <section class="panel">
         <h2><span class="n">03</span>상점 파워업</h2>
         <div class="pu" id="pu"></div>
         <p class="note">칸을 누르면 해당 단계까지 켜지고, 같은 칸을 다시 누르면 한 단계 내려갑니다.</p>
       </section>
+      -->
+      
+      <!-- 수정 후 -->
+      <section class="panel">
+        <h2><span class="n">03</span>상점 파워업</h2>
+        <div class="pu" id="pu"></div>
+        <div style="clear:both;"></div>
+        <p class="note">칸을 누르면 해당 단계까지 켜지고, 같은 칸을 다시 누르면 한 단계 내려갑니다.</p>
+      </section>
+
       <section class="panel">
         <h2 style="justify-content:space-between">레벨에 따른 능력치 변화 <select id="chartStat" aria-label="그래프에 표시할 능력치" style="font-size:13px;font-weight:400"></select></h2>
         <div class="chartbox"><svg id="chart" viewBox="0 0 640 160" width="100%" height="160" role="img" aria-label="캐릭터 레벨별 능력치 그래프"></svg></div>
