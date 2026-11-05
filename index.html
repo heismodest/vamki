@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>뱀파이어 서바이버즈 빌드 시뮬레이터</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;800&family=Silkscreen&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f3eef6; --panel:#ffffff; --panel2:#f8f4fa; --ink:#1f1726; --sub:#6c5f77; --line:#e1d7e8;
+  --blood:#9b1b30; --gold:#a8781f; --gold-soft:#f5ead2; --ok:#2f7a4a; --ok-soft:#e3f2e8; --warn:#9a5b00; --warn-soft:#fbefd9;
+  --chip:#efe7f4; --shadow:0 8px 28px rgba(40,10,40,.18); color-scheme:light;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#120d18; --panel:#1c1524; --panel2:#231a2d; --ink:#efe7f5; --sub:#a898b5; --line:#352a42;
+    --blood:#e2566c; --gold:#e0b45a; --gold-soft:#3a2e17; --ok:#6fcf93; --ok-soft:#18301f; --warn:#f0b35c; --warn-soft:#3a2a12;
+    --chip:#2b2136; --shadow:0 8px 28px rgba(0,0,0,.5); color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#120d18; --panel:#1c1524; --panel2:#231a2d; --ink:#efe7f5; --sub:#a898b5; --line:#352a42;
+  --blood:#e2566c; --gold:#e0b45a; --gold-soft:#3a2e17; --ok:#6fcf93; --ok-soft:#18301f; --warn:#f0b35c; --warn-soft:#3a2a12;
+  --chip:#2b2136; --shadow:0 8px 28px rgba(0,0,0,.5); color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:15px;line-height:1.55}
+.wrap{max-width:1280px;margin:0 auto;padding:20px 16px 48px}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:18px;border-bottom:3px solid var(--blood);padding-bottom:12px}
+h1{margin:0;font-size:clamp(22px,4vw,30px);font-weight:800;letter-spacing:-0.5px}
+.lead{margin:4px 0 0;color:var(--sub);font-size:14px}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 12px}
+button:hover{border-color:var(--blood)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start;margin-bottom:16px}
+.grid > *{min-width:0}
+.grid > .panel, .grid > div > .panel:last-child{margin-bottom:0}
+.col{display:flex;flex-direction:column;gap:16px}
+.col > .panel{margin-bottom:0}
+@media (max-width:980px){.grid{grid-template-columns:minmax(0,1fr)}}
+.statpanel{display:flex;flex-direction:column;min-height:0}
+.statpanel .stats{flex:1;overflow:auto;align-content:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:16px}
+.panel h2{margin:0 0 10px;font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px}
+.panel h2 .n{font-family:"Silkscreen",monospace;color:var(--blood);font-size:13px}
+label.f{display:block;font-size:13px;color:var(--sub);margin:10px 0 4px}
+select,input[type=number]{font:inherit;padding:7px 6px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--blood)}
+.ico{width:28px;height:28px;object-fit:contain;image-rendering:pixelated;flex-shrink:0;vertical-align:middle}
+.ico.sm{width:20px;height:20px}
+.ico.lg{width:44px;height:44px}
+.pick{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:var(--panel2);min-height:42px;padding:5px 9px}
+.pick .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pick .en{font-size:11.5px;color:var(--sub);display:block;line-height:1.2}
+.pick.empty{color:var(--sub);border-style:dashed}
+.pick .car{color:var(--sub);font-size:12px}
+.lvrow{display:flex;align-items:center;gap:10px}
+.lvrow output{font-family:"Silkscreen",monospace;font-size:20px;min-width:52px;text-align:right;color:var(--blood)}
+.charinfo{margin-top:10px;padding:10px 12px;background:var(--panel2);border-radius:8px;font-size:13.5px}
+.charinfo b{color:var(--gold)}
+.pu{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px 14px}
+.pu .it{display:flex;align-items:center;gap:7px;font-size:13.5px;padding:3px 0;border-bottom:1px dashed var(--line)}
+.pu .it span.t{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pips{display:flex;gap:3px;flex-shrink:0}
+.pip{width:15px;height:15px;border-radius:3px;border:1px solid var(--gold);background:transparent;padding:0}
+.pip.on{background:var(--gold)}
+.twin{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:560px){.twin{grid-template-columns:minmax(0,1fr)}}
+.twin h3{margin:0 0 8px;font-size:14.5px;display:flex;justify-content:space-between;align-items:baseline}
+.twin h3 small{font-weight:400;color:var(--sub);font-size:12px}
+.slot{display:grid;grid-template-columns:minmax(0,1fr) 70px;gap:6px;margin-bottom:7px}
+.slot select{width:100%}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+@media (max-width:420px){.stats{grid-template-columns:minmax(0,1fr)}}
+.stat{background:var(--panel2);border-radius:8px;padding:5px 9px;border:1px solid transparent;cursor:help}
+.stat .k{font-size:12.5px;color:var(--sub);display:flex;align-items:center;gap:5px;line-height:1.3}
+.stat .k .ico{width:18px;height:18px}
+.stat .k .fin{margin-left:auto;font-family:"Silkscreen",monospace;font-size:15px;color:var(--ink)}
+.stat .eq{font-size:11.5px;color:var(--sub);line-height:1.35;padding-left:23px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat .eq .pen{color:var(--blood);font-weight:600}
+.stat .eq .inc{color:var(--ok);font-weight:600}
+.stat .eq .zero{opacity:.4}
+.stat.up{border-color:var(--ok)} .stat.up .fin{color:var(--ok)} .stat.down{border-color:var(--blood)} .stat.down .fin{color:var(--blood)}
+.wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.note.small{font-size:11.5px;line-height:1.5;margin:4px 0}
+.subh{font-size:13px;margin:10px 0 2px;color:var(--ink)}
+.evo .act{margin-left:auto;font-size:12.5px;padding:4px 10px;border-color:var(--gold);color:var(--ink);background:var(--panel)}
+.evo.done{background:var(--ok-soft);border:1px solid var(--ok)}
+.evo.done .flow{font-size:13.5px}
+.badge.evod{background:var(--gold);color:#fff}
+.wcard{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--panel2)}
+.wcard h3{margin:0 0 4px;font-size:14px;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.badge{font-size:11.5px;font-weight:600;padding:2px 7px;border-radius:999px;background:var(--chip);color:var(--sub)}
+.badge.warn{background:var(--blood);color:#fff;font-weight:700}
+.wtab{width:100%;border-collapse:collapse;font-size:12.5px}
+.wtab th,.wtab td{padding:3px 4px;border-bottom:1px solid var(--line);text-align:left}
+.wtab td.num{font-family:"Silkscreen",monospace;text-align:right}
+.wtab tr.ign td{color:var(--sub);text-decoration:line-through}
+.evo{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:10px;background:var(--gold-soft);margin-bottom:8px;font-size:14px}
+.evo.no{background:var(--panel2);color:var(--sub)}
+.evo.ok{display:block;border:1px solid var(--gold)}
+.evo .flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:14.5px}
+.evo .flow .arr{color:var(--gold);font-weight:800;font-size:18px;margin:0 2px}
+.evo .flow .to{color:var(--blood)}
+.evo .ds{font-size:12.5px;color:var(--sub);margin-top:4px;line-height:1.5}
+.chartbox{overflow-x:auto}
+svg text{fill:var(--sub);font-size:11px;font-family:"Noto Sans KR",sans-serif}
+.note{font-size:12.5px;color:var(--sub);line-height:1.6}
+.empty{color:var(--sub);font-size:13.5px;padding:6px 0}
+/* 선택 팝업 */
+.pop{position:fixed;z-index:50;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:10px;width:min(440px,calc(100vw - 24px));max-height:min(420px,70vh);overflow:auto}
+.pop[hidden]{display:none}
+.pop .ph{display:flex;justify-content:space-between;align-items:center;margin:0 2px 8px;font-weight:700;font-size:14px}
+.pop .pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px}
+.pop .opt{display:flex;align-items:center;gap:7px;padding:6px 8px;font-size:13px;text-align:left;background:var(--panel2)}
+.pop .opt[disabled]{opacity:.35;cursor:not-allowed}
+.pop .opt.cur{border-color:var(--gold);background:var(--gold-soft)}
+.pop .opt .on{font-size:11px;color:var(--sub);display:block}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>뱀파이어 서바이버즈 빌드 시뮬레이터</h1>
+      <p class="lead">캐릭터·레벨·상점 파워업·무기·장신구를 고르면 최종 능력치와 무기 수치를 계산합니다. 기본 게임(DLC 제외) 기준.</p>
+    </div>
+    <div class="btns">
+      <button id="btnMax">파워업 전부 최대 (저주 제외)</button>
+      <button id="btnReset">초기화</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="col">
+      <section class="panel">
+        <h2><span class="n">01</span>캐릭터</h2>
+        <button class="pick" id="charPick" aria-haspopup="dialog"></button>
+        <label class="f" for="lv">캐릭터 레벨</label>
+        <div class="lvrow"><input type="range" id="lv" min="1" max="200" value="1"><output id="lvOut">1</output></div>
+        <div class="charinfo" id="charInfo"></div>
+      </section>
+      <section class="panel">
+        <h2><span class="n">02</span>무기와 장신구</h2>
+        <div class="twin">
+          <div><h3>무기 <small>최대 6개 · 중복 불가</small></h3><div id="wslots"></div></div>
+          <div><h3>장신구(패시브) <small>최대 6개 · 중복 불가</small></h3><div id="pslots"></div></div>
+        </div>
+      </section>
+      <section class="panel">
+        <h2><span class="n">03</span>상점 파워업</h2>
+        <div class="pu" id="pu"></div>
+        <p class="note">칸을 누르면 해당 단계까지 켜지고, 같은 칸을 다시 누르면 한 단계 내려갑니다.</p>
+      </section>
+      <section class="panel">
+        <h2 style="justify-content:space-between">레벨에 따른 능력치 변화 <select id="chartStat" aria-label="그래프에 표시할 능력치" style="font-size:13px;font-weight:400"></select></h2>
+        <div class="chartbox"><svg id="chart" viewBox="0 0 640 160" width="100%" height="160" role="img" aria-label="캐릭터 레벨별 능력치 그래프"></svg></div>
+        <p class="note small">현재 고른 파워업·장신구는 그대로 두고 캐릭터 레벨만 바꿔 가며 계산한 값입니다.</p>
+        <h3 class="subh">계산 방식과 데이터 출처</h3>
+        <p class="note small">퍼센트 능력치는 대부분 더하기로 합산합니다. 위키 기준으로 최대 체력 파워업(단계당 ×1.1), 자석 파워업(단계당 ×1.25), 좌 메탈리오(단계당 ×1.05)는 곱하기로 적용합니다. 매혹구는 레벨별 배율이 불규칙해 자석 계산에서 뺐습니다. 무기 레벨업 수치와 한글 명칭은 나무위키, 파워업·장신구 수치는 Vampire Survivors 위키 기준이며, “확인 필요”가 붙은 캐릭터 보정치는 출처끼리 수치가 달랐던 항목입니다. 아이콘은 공개 저장소 vs-build-planner에 포함된 게임 스프라이트로, 저작권은 poncle에 있습니다. 테슬라판은 업데이트 시점이 PC판과 다를 수 있습니다.</p>
+      </section>
+    </div>
+    <div class="col">
+      <section class="panel">
+        <h2>최종 능력치</h2>
+        <p class="note" style="margin:-6px 0 8px">기본값 <span style="color:var(--blood);font-weight:600">− 감소</span> <span style="color:var(--ok);font-weight:600">+ 증가</span> = 최종 · 칸에 마우스를 올리면 출처가 보입니다.</p>
+        <div class="stats" id="stats"></div>
+      </section>
+      <section class="panel">
+        <h2>진화·합체 체크</h2>
+        <div id="evo"></div>
+      </section>
+      <section class="panel">
+        <h2>무기별 최종 수치</h2>
+        <div class="wgrid" id="weapons"></div>
+      </section>
+    </div>
+  </div>
+</div>
+<div class="pop" id="pop" role="dialog" aria-modal="false" hidden><div class="ph"><span id="popTitle"></span><button id="popClose" aria-label="닫기">닫기</button></div><div class="pg" id="popGrid"></div></div>
+
+<script>
+const ICON = {"antonio": "data:image/webp;base64,UklGRpQBAABXRUJQVlA4TIcBAAAvIQAIEI+gtrZeLCf1f4KeJeyutodepTILmwAA0uB2u8tJcoIshGcZ20iSE8lmBpvzz0GZqJQBPhjzHwAAAOCYAYsrXNXoj0rR2eOuri5legp/7ynvH8La0PmGfU6iG4PE2LbjtsHDzoCyoP7LJbhNGrgvov8TEP7L3xe/5P5vur/y+8KfeENf/Kf9MS1/X22Pabq5OH3FDvBI92wuTuqkMg7izu4+m+2SfCAoV13Stps+m+00krs2ETO6oN0bPXm6ufQFyvGKKvsmCmm6mdRlb1FwJVcRVBrJ06Mn0WPGF5TBCqi5pKMCIscbVgCNOQpYAVC0CWtlo7Byt1cIwlJkiAeVZmYfaXWufhABlWaTjrqkDjFrLmg2yRhdGgGBZ1BpS8BGNwC5A5S2RDzQNaozOo0ZXehjNas/maiAbNePOUHzMDRr/NgEQPVjx8oJmoGhSfTH9SE0bUOOFmEp7KxwVUDPRIVzOd8ANHJUuKp7w4pvCd9yRtdQrvdcdaJjBnQ9R0AE0OsBAA==", "imelda": "data:image/webp;base64,UklGRoABAABXRUJQVlA4THMBAAAvIEAIEK/ANLKtVs+icoYWcAzV0SIuWgpAfhXbYBMAQBrcPQonHxVoQErKML/XwBRFktScA+IrWsACytCGkIyDzJP5DwAAAPz/D2BXX+Ng0MCwBoKmc90YXBwJGM7P/Vg5CaZuSSexRFI0+2hC80oPDA4j2W4annMgI/rvVQjp2xXci+g/A7dtG6lWe7PzF91fi/bZv/tqPXi4CVnv5ydwx3VehzucAlBHL8MOk+LPzHAT/aSBk3a9hcXptqpngJJrPXraqQgDSUV7vbvGcOOZyDAsSojH1fa9WvXv25Ke3Mh44F2mytQPi1PRjbL05lG3nywWO2EBZNQ4nWxXBDjtZmPz31lUXPvUX+NpjrpKFbH3YfFG0aovTU99TQql4gjBgNLhZRQjwZcJxMXA1451AKwfTj0RAW2HFboQULiwQahdYZPBhpVIiskUUEwyxKZOxR0oghrL1RZCrXUo0v42D7R+mjQmIlZQo6zVTvRj6f5QAAA=", "pasqualina": "data:image/webp;base64,UklGRmwBAABXRUJQVlA4TF8BAAAvH0AIEHegJgCQhk0F7uHrRQFzW8AwBlISAGiDvx1e/xZoFLQgwGbM1LbxZjGeOlLobKOJYf4DAABMU7zk+dJErfV1CoPnznod/o3RtrcAjmzbqpR7cYju6UfzuupX6wh41Rrh5G2ERJY/NLPMRgARqUvmkkLkof0J9CS+MYSI/k8A/f9BlP1nP5mmavKA9vcO/eiNXvnp6OQQfSTi+f5mOXlBgnjzkomoyuQClwloXHleWVK7FeU4dnPLU2VxH67ycFK48ryyTblreas1QB5oV+e1BhZTnioWNfJ5wCj2AMrCKJABEZFsOQYCMAn73Dogge4if9kC0eDqQBCBiQAgqBrAYcSoKDMKBmEwr2BUGOPJc5iWUlgNIS5SykKHSOW0slnLYayy2YUgNxvz9AfArcWtspgKSo3B5i0mYgH6C+W8RS3pZ0cnMJSHHp1gIpIaxibRaq3p0Yk4kyAiU2QA", "gennaro": "data:image/webp;base64,UklGRn4BAABXRUJQVlA4THEBAAAvH8AHEJegJpKt5gv4dNihx3iUAW3Oofo21ES2Gj0cYAUbdIhFSY4+3a0hagIAaYgAJ62oQzMa4AzhvbWA8x8AACD9b1IxjIKcnrn5xD7th5p04S1YmB/N10uaIHciEE9lgBjbVtzmP1kYBwNa+u92QfKkgfsi+j8B8Q/1ec/+hT7vGfyTWZvXx0Rps7LhITl5bkqo8lCivJuVVDNPiK0kcmkikXVvUlmVeOUjLrq1T7nICfMymdctsU9FBXKCAxrTVrRPoezihIvTDdkb7JMKGRttzkMqtgLtU8miIFi3MZcDWtZNSeT0yuvQ4u2gro0E2WDF4LILQnzdlZ0AixhcdgXoj283Oo/RZVec2PRzWwPLrgAE/Q+DsTvoYpkUJ2sR8AVDTlzsk+KothbQebYTOhFxVttadAyF8mafXaq6mRBx1FoXbjUTg6p2Y0S2iSFXe0TNEOPCI2qGuCt8JcAP+EqubsS9ahMgWj3crwtW6OcA", "arca": "data:image/webp;base64,UklGRnoBAABXRUJQVlA4TG4BAAAvHAAIEH+gJpKt5nc5dpQMNvDvKtlQE9lqhASwgAT6UzcVVqLgbDNRG8lW8rMfGZRgNVAO/efu8x8AAAD+/5mTuginaF1iRIudQpXSzZc0WSOL3dmpA3CkbW+c/NsT9K0scs4ZNP8BPPTRQeOOiqF3drudWzK03IAqVjnHlo4L5AMkyTscIaL/E0D/KY63jrqqwvgY6ToKQZ2dXduh4I88L1WFiHXiaQkkXMKoLqCR0p4jZkzvQqQRUBaQMn7LElKoJyLxqtL9mFpFzIV55cujJcAo6/bDfOCoETANVrHhux1LYFn2iChIadjMICJKK+bJxfUIf3lEJFKaGQBcQVGzNKaxUVuiPq05ZkxLi8tDVI7Ez7AEi0hEJTp9YCuEUVoClWIGzDAfjo/2BmhmQDteguFDzRyUG1w7nY7LwNW+26yZ0VKpqJlZAhXq2Y5pV1pJzdAxOEQengCJmCJH0SM7nfeISKRLcKZj9UQC4Qk=", "porta": "data:image/webp;base64,UklGRjABAABXRUJQVlA4TCQBAAAvG0AIEI+gFpIkaCzW3+cgNrzoFTgNNZEkKXf3Ohj1vGLM3wrnryaSreZX+Xtg6PAvImmgo80OmP8AAAD/f+AQL8vseh5mzQ4x64Evg1MVcqLrjpwSxUgmAMTaVsM2etQkocUfe/9xZQunE0T0fwLGv8T8g5v5Q+Bmhj8xMMzs/RSOvbenxMfYwOnxg3CAFB0igrnOM0UHxZwO5wMoI9LZNk6xBH9/ICnY3h3SobitOtcigyoIgmqQKaoKxd5CgqMKyQlYIsS42xtk5gWSnABWSMbgQJIjYmkMJtzMERDBcXIzcymuq7X/pqgC7Q9IO1VV7OoFUBfzGq/XKy6IiOjoOxJ1ydzIpG6ROBpqMNaoRRpILIuxlMlYROIOMpJlpWDii+O7", "lama": "data:image/webp;base64,UklGRoABAABXRUJQVlA4THMBAAAvHoAIEI/AJgCANLjfTgxO+tcgALdOa6iJZKeKhkwUpP4DPRUeMIFXWjRQoQA1kWw1P3YBAwwVgx2U4gYbtKli/gMAAAD//5nuVtnIEHll/TXFnocWKyahGrtqJzm3qK2rc+I8AGIkyXGbm9ODI7GGlvmHCxKUHEFE/ycg/jPwE971Bn7Am3oX3+L0zRv4Bs4Eth35G0ie9h1c3MJpGR7soDI38FzF88GjkAQLIE0SnlVSLR3HoQk70zZVfanDIYuSrSpBJ1ahAFRVslXAWqBSgUo+Ua1huYigJKmK0hVEIBcRQT+O4+gdlbg4CCydLKougg/IxPR8PBmjQekq+GARwfxijNHYtoVg3/cpMxPaGONLZGaeNJaCbSd4YmcmbYwBscz8ku3MZIq7/IHnTNo3Amuh3YAJywamdiMBgcVoDVobdzRDitFa673f8ST4cBy9AzecEwTn27YWOKe4ZNtvBE4vwYslwJnJ9fP5egFn/HL6LQA=", "poe": "data:image/webp;base64,UklGRlYBAABXRUJQVlA4TEkBAAAvHIAHEH/AJgDAJLPL3X39G9CIBHzUUBMASEMFznVRgQQYzn728N5LSSQr1HPPAwkoQRz6e9x3/gMAAMD/v+7GD/qIuDbaBKnqmluJ9g0GRY7y5vSUAbjRtjlOftlMM/8n71ZnYpx8F6gCFeE3VgbhZZjo6ICQUaQKGFLPNoCPT253hxIi+j8B9N+wQYz4MWbiDwfhS8b0jehv9SIMDKn+vGHBMJJS/R0/Dk19qMHxTdUQinzu9N7PxjTsiGYu+vPrhoYY9dX6wKI6krnIa1pAtrFqlhDTPH4DAD++VIlIhQLrQZ4IQuw9NPsAiAiJPWck+2jGiFizHsl2u72X1mAk2zlYBBUgqNgsa87FZczkLGvrwOqutl4YOFrfXn4752cWwfW3c1EmXWONytpZxAwxSHw7OQMRyxyjbTHqx4gteCQBTEoxDcOeAAA=", "clerici": "data:image/webp;base64,UklGRkwBAABXRUJQVlA4TEABAAAvHcAHEH+gJgAIyWZm1EISzZQTwH3jn+BqqAkApIEYJKE4//5t4DkvE6jayFYiyBjiM6IEPMqw/8AKzG1A5z8AAAD8/3O8+C1DQ94t/MEm5iBCRRm9M1Ex68eRBLjZ/rdR5HsYQD+yTM5QMcPF3guQM5SpZgTT/f1cLMlQUpru9PyXuAWuJGf+EowQ0f8JUP8bs59uzmf89godXuldFPjo8lgLPjHGWgg88Nk7sjyiFKR0LnebPQGGBc3JeGGyHLZ7pDOy4/eDgwvDQloGwOEgIDROORo+NYMIf2m2g20kCB2WB6PYGAPzSzV4EK8PA+TQpyGITEyBoEA4JQKUrBFbouPAdUZMielyNC6EIUd6ccp0ZgJJW4FcXG56Nf6SctkynSUeiWAEbZnYq1Q4KhQONw77HGubPhqlfQeU0vAPAA==", "dommario": "data:image/webp;base64,UklGRjgBAABXRUJQVlA4TCsBAAAvH8AHEG+gJpIk5TJ+jNEF2n5/b0NNIynQyTgNtNSfDnSi6BTgADWRJCmngM/CU/TR+5d08fP8BwAA4P+vuMMjKRavJPcU1YwJk0hsuAhvO8Bxtr2R8ns78v+LzXm3InZcwJIn9KTa0qSWXG92O7T5GohqjrAVB8L+B24Q0f8JgL/G0zLrcaXM8wYP6WuLhbKe87Q/pxYHmzo58AVjsu5pFTHQ3Pz0ZFRl6Juna5nUGXV6utY+uSYmo2siX+CmwzS/W9WkjtsWvTTNF1lNjCiKTQBAWjbpfH/epKIrAAAkkTqrzvNOuwsWpfyLakQdUVi0isL7qsoFfP7CSM3D+6okAehYhvdVJLBjokx4XwU3ZpEJVamINy+hLUqU8RmTbGmy/0sY5CALElcAAAA=", "krochi": "data:image/webp;base64,UklGRowBAABXRUJQVlA4TIABAAAvHsAHEI+goJGk5ruFpxcN+EYAXpCABmwojWSreb+G77+lb4rJoKKljqw2sk3rKsPIdCAV6lITCtCV9H3nPwAAwP+/Q3DnUkurxi1m4knOwkhFuXCbqQau8HTZMD6SQWIk22Hb4FGmPr5EE/79lwuIVFLBvYj+T0D7v7Vv5lty026H9luiwYbs3THE3hAX9DY0bfZu1UJvc8kGdu2bKHZNqU8JNrvYqIAe8E59QibRgDLAs7C4loJBLX7+RqFUu2JS5ehR4/m3PaLuEaPU7fB4doW5lqhGqIdd8Yh7MCoEPexHdKJ8QSk8pehRDlIuwweGHGb6mLI9xKJi2EqlTjheIFIxXCscJhEcfs1WiigaoHcKFiccLzBKBG0elBKl4DgB+2UrlQuNEqnpODGANSeaCkMTwYvjBIsoGmJBkxuEOIFD9KjpquygadmmuIGgIVfQQHbdmRVl2tS/ouimAbLNPYU77UL7Qqet5fhGv5IO3dGv359Q2rokFhcTC1b6pw0=", "christine": "data:image/webp;base64,UklGRkYBAABXRUJQVlA4TDoBAAAvGEAIEI+gJpLcRlWCk3qBllh4jMKdMSQaiiJJavZ7/4AGlGMgg4moAANIOKWRJCmnHkIgy+7yz+Y9g6P5DwAAwG+fFOqMI8ygKayXjKs1EfNvL1DbZaqRM4ceJYaKCBAj26rb3KOPny56gNV/udiYpIKI/k+A/iEhEWv2iDiWiNcrXrGCuBst4rcg4A2/BUDthH6NAEGHXyIYK+NUBLxb2jXv1piIQPC+99370ZiIQKLTjn0/DuoMGjr33o57JkIS7nC3+6bmBMPmod3kMyGJbUNAA56HOSSc5AnfJLFtCPtMDw9fXDaDnU6fCQ/lw1W2rVx2+ttWPEPaaZ95sn3xVcpl8QFwKS6DfF2WxFhRsYvmqb2DVsIf1I5WUiu1s6ovSqhLOE+EF5CJRCa/8Qz2xhRjJmBsgA8sFg==", "pugnala": "data:image/webp;base64,UklGRoABAABXRUJQVlA4THMBAAAvGEAJEOfAJgCANLi73DThJzmXrsu6KI5kG/r7t98EIAaRyJxk3BS1sW1Df7MvGV1oXBNCfci+0Chg/gMAAAChEPQJM49FwcxjzJgaPHicHqgdUUNEh4rB1JApqr1xrYpX0TH0fK24zef9R4n9tXWMuXx1gsTYtuJGene+NnoB1MjYjJV/okLfhBDR/wmQPwQNJpQwquQ86ic/hj3yqJJzGELIuRQG8JNzeSyFAXMucKJPYZ5T4XmyfAAwU1mevw08pBSAQleiK5GAcDnPEyA1KInbQOPkJIQEEiF0BDT446or8H7vSJ3Kc9Itf4AkGp2TG0E+wLhW9rdDIh8H18qLwyXy8QbSAJEBKvDiwCWAVEkJ/vsAagVIHC6AusIE+AAq120DdA9gEaR59oFkEXTFJ7HX2OH7hZzI9lp7r2+XBPuqDtsnaVWfb3MR47hVdxseYjTPNw4jWul98W9zEPfV07aNGyulYFcwaK0hycwMsJu+IQA=", "giovanna": "data:image/webp;base64,UklGRpABAABXRUJQVlA4TIMBAAAvH8AHENfAJgCANNhpLYhBQSoQgApcJLG5b6dLDbaRbSv5GrnhUgP9kNEyQ84QEbsDmwAAk8x3OVBgicjsHsPldpn/AAAAAPz/H6IY+pHtKYx9K/wU3CNt+ypf4dIv1jmKzWjN7DRhK0hax5Wn/96JZEaigJ+4ZdhcY0c3lilDcCDbVpu8q+hPtcInZP87hRRdQUT/J0B/zq/4FefR4Aeifr1fLU6Q2K1z+UzT9PkAOpv+eYNeZ0P/fF5v6GTw0D+nafIre2CD1YOuj+m23tyhBfc7DdxDUPiGNTvuDhAYO9AOSSHnjHBffTQz0CZOJd5Iwh2ioZ0wIYk1hACCcQTtMhQCvpLcYRxB+zFwz3AxiCPoMMF9ZbBkREAnhrxCYjBIOByBEKjNSJZwh4oGlDoC7zeYkbM7gGpKmWPNwvsFyQaWnN1RixJLiWVZwABeCcDRRplLjAUgJVh4WYW2KbEUJDXg/TpWIqosIYnXgPYTUQvVDBf2CbVRm+HIP7J9Cocl2AMA", "poppea": "data:image/webp;base64,UklGRngBAABXRUJQVlA4TGwBAAAvFYAHEDfBKrZtJc8dpwMBGL6JQnx3d2owDQAwydxwqPx/A52oiewuyUljG9m2ku9uaOZQO8XQBCnRJ3OZ+Q8AAABAxw8gLBj5+vWNUeoiEbCp8OMgLdEea/SPexn/h4znIHOxhq9NRcgxpvLixLcS7WJYwNEouip5stLnZnxe096wn4YNlWPCsjQoqgcsKkGQSY9J8s0AsZEkRVLlwXTPMfbC4xz57+OiCRH9nwANf14vzfh51XU9Q11fLzPUNTyYxo32AVM4N4CfYYI3Dc3bfRwva0oppbEX41pvGm/sa8ITN3OD5xie4O5miCcDPJEwyyDxZByQR1GQcP/OIImCJAqS6OaMJAqi0CLMcxeJlgJIEmbZciTUBXUxM8sxNDgimBaTMDOLPMs6R6QUO0Zli4hI2+2U6G6P2+UMaabtcbsbg+VT53jc7lYLhtb5lHoO4+K0SRHHv8N+tRwATlV1j+Px/3f/87PvYV4B", "concetta": "data:image/webp;base64,UklGRrYBAABXRUJQVlA4TKoBAAAvI0AIEL/ANLatRh9UjhKJozq6oydUTqu2DaYBACaZr7krPMPhyzQy1b6Ymki2mk+sHnSxRguDDZTSIQEPeIjzHwAIAPqvD1PB7wBCEdoSbcMSyKcFBysRsxxXDPZk727yPMo/IN7Fc/rmkkxSjyJelQFibFtxm//yLQSSdyOn/1q9YVdwX0T/JyB+N5+IADHKXQHqCnS/KT1OXSHuHVRzgHvNB3SjF39gvyoZoA7UvYtc84U7fnC3SjoQUPb30nbPbB87+B1YoFEMWfNRbEfS8VBTFdyABRpqaR83LTgdj+4OV62HGSi9kfZ2NGqLMp6721etTZAuaR83jFcfFK/TV1BDV8Db0ZjUemiKd65wUWkItqNx2mFBvGX74lQDbce0FYUsyXslsS//Ats5m8gx+PL3D+dTllnDfDnbPpHFc7WC3H2AS55tnyCrXUb5fHpMazqshVWRO8cnJZ9SNS3zYVqG4JI8zmJajWKMn1QB7TApcuf4/MmsqYnGg0dgAyrToiaCNEOfzJNaUZBmvCov+Kbi2XcVmr8HqodfKPUHEF/SmzlGn3vE9wE=", "mortaccio": "data:image/webp;base64,UklGRkYBAABXRUJQVlA4TDoBAAAvG4AIEI+gqG0kZ5gsiOV6zPoxWN2v96OhNJIkZU9epJ/vK4qAUfGrCQCkgSi8pCYWaIHx7i1Btk0Bh3u/BwAA+P8fgEslpKVySkXriU/ERWtveRRnb2MOeWREjJkoISCxbSRJkoI5W9m1vfOd/+b2C5wDEf2fgNz42M29j+w+7sljN/8j3GZUDTcZo6raLTzHPy038uU52h26vtB9jap+Wi1c4aeaActyQfWKVT8hp1WzMgbPFWdUS4yqflrocy2JdYynxQW1E7uJnk6QXU/Z6jO9hwOrPV0tif4+sZm9p2sebDdxxkbTngdlE01i1Jf377TTJ5KoKfiboudBSNSUJPxOnEiipuzy90vLsXo+c+h9qeXQ6yPkzLra4yNXnfjIbT7zjqXtTLnMaNvXa+IErDXszVk17bl7Aw==", "cavallo": "data:image/webp;base64,UklGRrQBAABXRUJQVlA4TKcBAAAvHcAHEPegsG0jNXSMz6+wbSM1dIzPr7BtIzV0jM8//wEAACAKCS2WwiwYM1OFRFCIkggPoirSqShTRSLcDGoaIcwMEXEP7maMobrstVUlVWNm/v8MEmTbrlLpHpQE8PqJvhYS0PnP0xjsGZwT0f8JsP0gDbQfg8nZS+AvwD5R/nhLxD7E831et3fCKOxD9H9F21uu9B53gTH9lVy2twhyX3Tdy6JPkLYT0aX7klW0kdoDRmn06+VZJGU92pA8ajr7meGaS5asGcmj+NTVp36cxp6XYwukKHLVch76zzgemqJI5rUojT05OsXuG6JXiqSbn24Ln6MLNcTkkVbL1bkfXF1tckWBuax6sUhZc6fB1VU8epzAjevrsyjPBg/OSpgcgVy3Vy3Pxm461oiJoKHUtgoRvgXR4HkjX9zIMp+McFodNITxUbaq5lOAEdYK1+lZPvScog7WjnChzkuRNCPs04UxIGVpgSFEdU1wxSDyPhO/0BB0hBGk8RfHnrKvGILUpCH0HRqCJDZ0g6vv7CsYPRzse+dJrpbBk5wNA0SxUaIoVvAfjQQA", "ramba": "data:image/webp;base64,UklGRjIBAABXRUJQVlA4TCUBAAAvGkAIEGegJpIk5SL07+4E3DP/p2/DQNo29TAN831HV3LuYFPbtg3DrPn/2k6QbVPA4d7vAfD7B2LrvixGwMXgPNdFZ3jTywDkbP/TNv+UmblBraBrmUHXcG55Hk1Q5p5qGiEjlEb4Kwz/rSzp8QgR/Z8AiJgxZpMGgCELYIxB9ItWGFeLMyaMx+OLMQO+bIj4YtMQOBsi/tk1dePifEXNaFCRo5onN7r4DDobRGTjOI7QoILgofvQtSCq9WYMhzO1Yo+AlOZk5rvvdwF1ipx7pwu4MhMifAhBXAEAzOBD9suZAUEh+M93KJgBHNfgfSXbmgEc0XWy2SyZqJLNZjuml2yWKi1TJduqtrMzFjtSkgEbxKWUhh3Oq5Eht9vhnEsDku0MAAA=", "osole": "data:image/webp;base64,UklGRrYAAABXRUJQVlA4TKkAAAAvH0AFECcgECD8vxlQIEkgkOQPNsYsCtlGgObPN4J7POY/ALDjzwQHtW1V0X0N3hUL8JgCcinggv6lPuo0iOj/BOCPzlfVXuDiq0IC8I1fKY7JVrlKiwOggaFGmwqpkz/1E8ucokoq0W3hOaSiGnWFXCWViFgxq42hsvGRO8lWc6Tp5tVJsKVyrDoBgLzS5J4w+2AzANjgtjvZIz9d59RtAxrg3A8anC8NAA==", "ambrojoe": "data:image/webp;base64,UklGRiIBAABXRUJQVlA4TBUBAAAvHMAHEHegJgCQho+Pf15LS9i/hgHoQA01kWw1Pzr489tA6JCAfxl01EhATQAgDU12ABISh0hcuE5fCzj/AQAA4P5v3vXPMatcTS/a+sMkvAzZEdvhRTID4Ma27To5N/yK7pEETz6jAxqxmS/hRt9FKuFFeBcxj0pQSE3PtRDR/wlArANRXKOsOLuyIr3e2CAF35v9yRHy+uL21yXfvfHviAXOHBcvktIX1y5P34dVwePh31uQ1K97DBz5kwJpwS/Fr1JQ27w6WA626gV6kIyP8LBL6fNmFOBskwmrPmKKJB2gkrJHsajJBLFWoJOEtito1KQemZqkggDmcjZU+KoVyqxqCYDMkQIoRZtIfU+SLbkEoCwHAA==", "gallo": "data:image/webp;base64,UklGRrwBAABXRUJQVlA4TK8BAAAvHsAHEO/ANACAJuw9DyBRuZUf+IWKWv1gazN5COMAAIwcsz1OszRkM/RuAdvWi21k20q+4e5ODTRPI6QQuUvmMPMfAAAAgBgTjGEZVWR+D3cOgmVFQ/Nbi09YFSFGXAuqbMmnQK8Xs96k7lpS2IIS12vrlXv6Q4aPd0r0MDMi1bKkzvhX9wsk2LYbtw1eI3pAZaWQZ+Nj/wsVTbs7iOj/BNjHHmFfBsw8Ivw7ZCYe4RP+DRqQ7nDDvgKZFMw3YMPQ5FWeXjDNHmDGmREm/irLi4yYwDivI9N8naWSFxGpK5zX6gHMlwWV5JVR0sJjLcDMmOcrv9DQJqLEzKNYfhc6x3mhNeiUMHisLPPGmDnStsirJMx4rCtgG6D1vFzCeoX1yQ6qlLBerZ+gkruLTq1Yn2ytgVzukjubFRtC7pJckjAzsCHcJcklKYUNk601pHyXX0BKySUp85V8IUf0GiJbQyNSVfFRpt6FpGAE1JNLCklgAyDlQEjwY6NIyldHERKn0wfxLkICfg4MGVHbCAAzOD0Ze29dDofDmLHb77H3mwMjf3b7fweGn887QI//agA=", "divano": "data:image/webp;base64,UklGRoQBAABXRUJQVlA4THcBAAAvH4AIEI/AJgCANOgJPTQuQbj9JYuzvVZDTSSr1asQgCX0ogAL1N+KSRUDqaMmkq3mB/CCAIzT0WEAHGAgpzrNfwAAAPj/70bAYPmI6t1aNHQ18zxLSZ+GH0mwNFUp7jx2ODEAMbLdKIyfkLBJjI7+y+UwSQUR/Z+A9r8z/ijd5jtYSNeF81hI1wWOE15hqsYLzoOfBcLjBQf80N6SXF+c/HLygsiUfXvDL+fxggDYN+AGfjkO2j2AixQ7FdAa2wbQ7gn3cBcpKHeDbWOnPaLqHhkhUqPcNYod2iOqqp6ZIFIjTL2AtmCZ7GRV9q5O0Z5RVetzwrYxRvZpwVgwVXVh2y9zWsKCqnoKO3nTk/kBBfMju5vMmXNmX+v21LP3Dxpmd/2ur3Uze7I72mueLM3Suq31m2mXMLOkLWIWbzRpy1hANwvV1OALICMi3TMYX4wxeB71RY1RNaSqatQ3NUqGSNUQ+SQi3cPvYwmoKpGS++L+ga/bfwUA", "assunta": "data:image/webp;base64,UklGRpoBAABXRUJQVlA4TI4BAAAvIEAIEJ+gNACQhkbjAiIZqv95oP4wk33rG2xj20qEQwFERFYCLXgJ2/+Mu4fLNADAJPPo3jfceYDGtXzCM2s05j8AAADA///YW7gLTTGOJrRmEritX11go/3cqUpXFeRC68V/PbSP2NzMnRwSY9uO24Y0TJqhAq39VwtwsSvgfxf4P6L/EzD88fH9Mfv5DS6z3q2fBt06/7nsvH711QXGWcKgVp4BGDj94v7gwFMSPCYbcbiwB6Zxz9e8SDyYkFafxgcYMA7UnjNERWidDAxsBFYqnUYTmE0yPcCwkVW4nOLJDOCYmT3AzEZ8RVDrsMqRYJLMDAKcavEEd2B16hFMwjFjKDv4iuEO0XpvwSRRDtXGDEw4KcOz945kDDvb3GgAKSK/qO9bGg1JQIrwHLcWoL3MCyr5hn+eS7QfVNt9YNEmOW5cF+joc1cEpGN9BxE54FDry1aOFJl0iIVdEBEcEKoTOSEi8qFtIpDEeaSIQgCn4DlQJdlJEbFRnkC+xVZEPkIZEUE1FZuS+G39QQ==", "sigma": "data:image/webp;base64,UklGRrYBAABXRUJQVlA4TKkBAAAvH8AHEKegJrKdKAn3rQADOAAF1ChGCx09LRMbbCPZTiOlzByrAdVBbp/KcGp/NgEAJtnvWwQ3JAMlSGRFKeAu8x+AAEAgw0//UW0nrJ/yCllgnkGPDM6ZtE/qULq9ImyD02ge1n9yC9f2WAzoQWIku3XD8BBKVPAIWAjVf7P+SOkgov8T0G5fXLTnObnO/9LHCftzvY8B+0F/qI/RgeNg9Cd6H6NDJgfAvT5GB7LMIO1eH6MTEcqy/IcV9zpEqMyKP1QENxigkLKKE1IS/NZRRFRBxHWSWRb80lCEGbi7pL9/cdlPSDLAkRTaru04VPxmSDjnFaG1ru3YKb4gFYoAh2sts3lt/FYgAGkts8rJCfkFFQ77cbCWWeWc7uCefCrcOXbWMqucE/zjJ7Jwjn0ts8o5X69bhTtrmVXO6ZwvxA33tcwq55R8u0WmL7PKOfW+XS/ihi+rnNOl+HASwt2T9mXOiVwR0na+xQ13kDw+XBeKEHck15cTfyNprTUy3QFXRAi2E3cFDdonoLWGRzgDcAdvP9K+upODAbTHqSRpj/K5+PkXHm2fAQA=", "whip": "data:image/webp;base64,UklGRogAAABXRUJQVlA4THsAAAAvD8ADEC9AFmAanMZy6Q0gIgESTjDF6TaHGckELLZPD42UUnv+AxDTVKt9vgODSLbaHF8BTUA3wMQAxUCKfzMk0RDR/wngZ0iyhbGKAP1IswDRSJqCnqtI8+jHjBoc3RIKUb1dqndzFprSfi3hUvSY2PQysmFWecEYNN8A", "bible": "data:image/webp;base64,UklGRowAAABXRUJQVlA4TIAAAAAvC8ADED+gEJIk53I+f463OJrnURDJBvV+CUSQUi+lpDBkGhBO+nfwCiaBeeY/AMDRf3VN97NzUfY2wDaybSXIg5j7kAI8/dIA8miAEjym//TNryGi/xMQ6eK9p3lq2zae/+99c3PsIpmpAZCpwEoTcr5MpkKDEFYAKjYRoQgAYg==", "magicwand": "data:image/webp;base64,UklGRqoAAABXRUJQVlA4TJ0AAAAvD8ADEGegJgCQhvFz0YLLrf1DWGVrDTUBgDTQYHNzUmBo/06+Kg0AgpFFzSEj+/8RbXfzHwDg/8/4hIhpmiRcOi00nsp92jXvsh4BTGpte/IvVgckjgao6SAAEoslAR2IQIP/4PZyxOIbFSL6r7BtGyRjPERgSUsDiJYcvLN1bH6+awZU4Qqwb6LgyhTAR/0ooHQO0gYx8KHFIUAIAA==", "knife": "data:image/webp;base64,UklGRo4AAABXRUJQVlA4TIIAAAAvD4ACEFdgKpKN9x4aCOFXACmklkUhRW2kQKtmv8ulBNnIAQGoiSSFIbQIYOjQkSv8O8HC/AcAgjxXfT8vticwpyOMrZK5d2Aa2baT96OPniJQVJPBZyr4fP3d6/cONUT0fwLoZ29RlqiCFOpdymu7Nn/MvHm3j+u6SqJdEhwtaiTC", "axe": "data:image/webp;base64,UklGRrAAAABXRUJQVlA4TKMAAAAvD8ADEEdgKAIZb/pXUcDpoMYCrIeaACAY/dMRYV9bAjWRpDAvBv8aKHNQgQIqqvkPAFze0Qqy1iM7P5GLjwG3tbW3yetQS6bOtEorUEdJ3sAtmdbZ/94wRET/A7JWARxHw7/psAI4DnX92w/thS9MtbXZB6bG2o2ChfhLrRCh8NJKBcc6C6GCXELwFbeOLGxqckUWjLq9IFvVHAYUS6P4QiECAA==", "cross": "data:image/webp;base64,UklGRqgAAABXRUJQVlA4TJwAAAAvD8ADEEegJgAIxmrg8wug2E6viZkIhJwCKghgN2rw/bv8YiYAi93rsKGAiKLJIoQAApLE/n+OAMD/b7qSRY8kKyq+cW5wG9u2qiw8d1Knja9A6pBaAS6pt04LEf1Pf4JEkkd1aD/k8Bz6bEoa67ygfDs8rxhsGusSDuXnGQ6VSQlWrfIVh9pjMMkzf5YO5bGg+aA7FPzyBIkg8Qc=", "firewand": "data:image/webp;base64,UklGRqIAAABXRUJQVlA4TJYAAAAvD8ADEE+gKJKk5qKQU3N6I/BHAHaQoqaRFOh8PPjXQUVFMHRBSSRJzuF8/i2ciQyfv5z5DwD4oUang6pc5PN+7qW353yA28i21eaISlDOlDGkDBlWohLkDuzI9YpaiOj/BEDMdSC9kNb4FNRlGpzU/zZJp9+IAkEdfmWAtTUXCQjWxEg5T35xCvg4J2AXrzTvikO80iQ=", "garlic": "data:image/webp;base64,UklGRnQAAABXRUJQVlA4TGcAAAAvDAADEC9AmG00jvn/BnJYp0GYbTSN+dPsdUhHkG0zkNkN/Cif/wAA/1NVtgGDSHLbnBikCUAKhBCoAFTMH4xiDhH9nwD6o5Sh6c/lAtiyKrC6ujB827lp8dIOv0trqWBqTWCQYaQPAA==", "water": "data:image/webp;base64,UklGRtoAAABXRUJQVlA4TM4AAAAvD8ADEHegJpKt5kcH37+XRGwRQE2JGzWR7USpM1FxtgmHBXzglJYSCWhAAKMmAJCGDZrA/r8RVgMKaAdfv/kPAKDO7TW6q0Npcpj/e9j9Mdx77EjSma8H5pVnMziRbe1NvnwrSGzUN1G/om4BCy4Wl0gcg/8dVfdmcQwOzbCQ3tlEyhreF9H/YSC4W98hALvq3k9sDuolVDXlXP+ZhIy7nEx22S0wwTYWk6chedaWk+6IpXkMEd9YWu0OcM8VxZp4nkJEIyb7B2AIEgBgAg==", "runetracer": "data:image/webp;base64,UklGRnAAAABXRUJQVlA4TGMAAAAvDAADEC9AFmAaHMneGEogsgDT5O5JBBBJGilkJInNHckR3BeEPv8B8H1NjaRlJ7CKJNlJk/7fc0Ch4AUUBAvr3w0aIvqffg7QAmYOtJlgzuRwXk8Sar3nTqn3C/XeoXzA7gcA", "lightning": "data:image/webp;base64,UklGRtwAAABXRUJQVlA4TNAAAAAvD8ADEH+gJACABJdI8sQYBjHWn/gNNZFsNX++h19lghIM0KECzYigTmoiyW1URgKxEwOV4s/EDDyuLSAo8n+0AAAAwP9/67w1ZXIrukiyRScKXGJqs5lfR8Ej96bGBafVti3LzeH7m0e6xn8D3KnaHRqHEVjALTtTaHTItgEMQGWHiP4n/2/Wv88ZZB4WLjKKN5hLAcpk2ahJfAOxRaMuYbaEPV+UoCWa/qANWsLrXgmFliA4FOrbGzvQ3cNpEgzG7kByNRZWOGIYeEABMPkH", "pentagram": "data:image/webp;base64,UklGRpAAAABXRUJQVlA4TIQAAAAvD8ADEC+gEAAaJpPoIwnqbCIK2rZhiqJYyvYN6AgkbVZp8c6D/nEEBEX+jxYA/jepqOyvS2DVQGidCw76+qekBghMwIaCZf7tTENE/5M/MwCsNQN0ftct8MTwONCbj7bR9HdViXpF5BD1yIohmlWZJfTLx7fhWRHvAW0RTQBrzQAw4w8=", "bird1": "data:image/webp;base64,UklGRpIAAABXRUJQVlA4TIUAAAAvD4ADED9AEECS0CzLrTTPCGsQSNos0Zv8/cuckQlYrJBfDaeg8pn/AADv7RWnMzcUgePatpXm4FOHKetrAzQCkXHQDvJf/ytSQ0T/J4Cf65n/uPKP8hmuD9a3FChYRbyqE1ZRSqmJ0imnhgqq1asCGMWrCF7hchWsV7h6YD77KgLKKuJ/AA==", "bird2": "data:image/webp;base64,UklGRp4AAABXRUJQVlA4TJIAAAAvD4ADEEegEJIV6gG810cghYRDCCajNMxGkvH/iLUhU4/Rf6oFBgIQMcAVIxyww1Srav4DgP/PpIyqmm6Zi91zY3DUSJIj5VoAC6E0w2EBuK/t3u/ZZnDHX3IYIvo/Afz0s/lhzcflNdoHPg81Ah+GpK7CB0nquWRlPQLCk2pgGZJaWEbLAW6jPYH3+YwWuETL/w==", "guns1": "data:image/webp;base64,UklGRrQAAABXRUJQVlA4TKcAAAAvD8ADEE+gqI0UaHdBAP4NXQpwwgsfiiFJYhbhFO6Xz98gSqlpJAW6OxBAh383jwVaNFDPfwAQFC/el3NOkLOxstt86RtwW9tu23xs8KkAoZXk1FIjeARvgIpu0bnN9gjelxwiov8TgJqGmi6NuDWolir/3bMAvCZdeiD0O503sPjd5gWhn/+pX1jun9+yZWpxm3c9Q+/C5cIivNvchQKUuXcBgCwJbQA=", "guns2": "data:image/webp;base64,UklGRqYAAABXRUJQVlA4TJoAAAAvD8ADEEegoI0U5ocBdKADH8hdChU1kqQsCVj/hvC5buAuagKAYMxfAP2TbFWUmP8AgFDrCSUqv+t+Y+trXB64jW0rbu7rgJ0YpAZwJz9S7IVxvNv9D0VE9H8CeIily1p9y8I/TICL9ZeB0c1/BNt2vluBHh41T9HH839YIW79d9SpcQqPPE17l6tW1MKjyk2N4ARWXARwmbUH", "cat": "data:image/webp;base64,UklGRqQAAABXRUJQVlA4TJgAAAAvDwADEE9gKAIZBWikshPIcy1WxFAEMrroobiXDAq4FZmaAEgYXpqQjg6mtIDfrDD/AQCA/ykW0drG0fLuihXgNrJttblihVzA/yOK/6gAhhQbQjv1rVnuIaL/E4C/Fc0XKprwHE0p0hQ/UzYleUlXLglVN9hJM5VMDr1L5qLpd/iJL7pYgx/44qsBfqLVAQD4gfeC2k80AA==", "mana": "data:image/webp;base64,UklGRtAAAABXRUJQVlA4TMMAAAAvD8ADEIegKJKk5u6Ir4wANGAAO6jDCSLiDw/YUBoASEMnUecnvMct3MBHGpWsaiJbjejoMUDJIOiK6Ci4owAJERAU+T9aAID//zpQP8PoJ1OXXjEbOFyz1SpV2hDt7LKqI941M5WBQSNJio7/5x72/NtFC30R/Z8At/47oHGfa3R3kVvkBP/x52/Rn2YISNzBQbwFBoK/ax1giI5bhobB9ZfAYAMwZoaogkkRxrdwCernT52UnAQfENw0QV3r3/NsAB0A", "pinion": "data:image/webp;base64,UklGRnwAAABXRUJQVlA4THAAAAAvDcADEC8gJCBTzmgeIJO2zdVI31oYU8g2Ahwbxz0OJ3LzHwCgXptfJnAQyXbbrIVA/iGgCsANgRik8EcTDhH9D2SggfLpcI4Ncv+rcPQnUY5f4FyvQDkjEvmKdyf3z9xon1mrsu6oZxJtr4NytZUA", "lancet": "data:image/webp;base64,UklGRq4AAABXRUJQVlA4TKIAAAAvD8ADEFegqJEU5vyrwUMHJzybGEVt20B9F0a5lMewDsGAjMElNQGANJz070GElYAGQw3gtb/5DwBMryEU/zXJmFVOP448IAKXgdvYtlVl4TFDB1qAxt8aILLoY68DNNYcSiCizldERP8nQHwfS7ax4RyUnQaYXRFC+LRI3t3xFfe8+LUoR7//DWW2PrdQ5lfH2GKDcvxt75FkedFEfx8CBHE=", "laurel": "data:image/webp;base64,UklGRoAAAABXRUJQVlA4THQAAAAvD8ADECdAmG2c238K0zmjI5O2zVVGz+qZnRFp24yOT8Jd3vz8B0D9Zks/MIhkq80BEfBfiIH/JwYoAlL8q2oaIvo/AWDitY30sBj1EKAIRULS2YX1kfwGj9imEiZF3VfgaMlHAluXt4r1BJ6weMM/DBD/AQ==", "vento": "data:image/webp;base64,UklGRugAAABXRUJQVlA4TNwAAAAvD8ADELfAJgCANHx6cTk0IIZloxYd9vvpviRsAgBIg8sPDQhADyJrC37mu9wvpZFsNeCyykmjaONb+qD33ADMfwCAKE1SAZ67CFLBf5Y7iV2JxNxRv3Pb5uWa5gEW7FdZKx2eH+KF5m6q+5ztiq68AXDYtpEjade7l+ffF/vvNZcQ0f8J4FvbfmJ3XdfZN7XvG7vtOt/UWo3ddj6VaRj63sZtNwMat1Jr/zduZ1AUAbU3pDWh0MVQYT0uQtJ2sSTIoYjfXoD1SEAOSYUH5AipPCHniNATyFkCEh8C", "bone": "data:image/webp;base64,UklGRl4AAABXRUJQVlA4TFIAAAAvDwACECcgECD859gRY0MgQPjvUWOGQIDw/2PJhvkPAPCnqoBBJElxZh3sFii4wsBngMS/LDxE9D95DSCYAje8ezK3PGrv/cnVk1vyEfgXAQgv", "cherry": "data:image/webp;base64,UklGRtIAAABXRUJQVlA4TMUAAAAvD8ADEI/AJgCANLgTgMudrX+M3cthWdREstX8TBCQOgTQUuJ/MIEAUPA7NZFsNf+TgwAqut8iAP8q6JKIzMz8BwCwN1XdsFkj7on22UfcYp4x/a3qlJ1m+JI8N2IeXGe4/1JmAYdtGznS+DfNacPc91/uXiohov8TYB9L0hOJiFO6ETBXgC5Ex4FS0RV4zgV8E5ATHWiui3zQRyfDRcbxrhxxUVfg/GDNzRThOQNnyLY/CXDgwpSgOxyya6mPjmQPJck+BgA=", "cart": "data:image/webp;base64,UklGRp4AAABXRUJQVlA4TJEAAAAvD8ADEDegoG0bNlUSbw/JFLSNAsfOzgvYgCDbNjWJ7Sif/wAA8DqhTuHl/+A4tt1WeYIGHKQ9qQEjew/IpgCHXwCp/yqoIaL/CRxOngAcZqsXAl5bzsY4/JqJVrpt9S5mu9dTSxPl3uJYXvlR53qvzMni2LxyMpUiygetXsz2TmsUbYRkOQ8G3NVmIQDOe8IfAA==", "flowers": "data:image/webp;base64,UklGRuQAAABXRUJQVlA4TNgAAAAvD8ADEIfAJgCANGgSvwjBqQW8MxkIYLtWRE0kW80P1H/o6UADfZaAfwM5CFBT22pDmdhgBAOx0Py7iIlMPefMfwAAAODaZqjtt2yWb2tA68C+SEHR5qwkuU+fyZx0xgftGjBoJEnR9N7C0YN/u3/vIaL/EyBJIAE6Q+8RNgYHeovWwjIHn2gRLUhLMw6tB1VpxocgqH1VJpIwG1y1d21AYmTarqo915qQlmbJ3u6+1iJtZOac+HRASsT05T4fR0d8Lfx+37+1AJ775SAWkrjfyUF8xPSfXxA=", "furniture": "data:image/webp;base64,UklGRrwAAABXRUJQVlA4TLAAAAAvDMADEH+gJpKkaOsU/IAOiowc/ylWfhtqAgBpCENeyhDB+Zpg7/H5qyi2DcrytzMaCCDDayWqClK8+Q+A+J8PHHNjZcJWuOX4VziRME2HitAfTBuY1hgNbmtrb5pXqv21AVQ5U1GLHdgARqDMwaHzRqq8iydwnWaI6P8E8Hs8vzytAsZI7h9aZsDT4qhfY/R6x3dGq8WZGQtf7MxoHm69QFuVpYK+MUbBOHQnwHjyJw==", "bracelet": "data:image/webp;base64,UklGRqYAAABXRUJQVlA4TJkAAAAvf8AfEJU4imTbVUQQRWESVxhBwvy8e/kR56/UtG3AfOXPY0IqkD5EAiQ0Xtj1/zQHCAQSjP1FbwJqduH1mj1cEx+M0ffOaDEcExveVrPvKIZbYsOOTk68oxhOiTuSWCcXiXcUwzUW4wENwy1uKIZrBzwUiZ9ndPKODcW62PBnvEj8wTa5WFcf/rDYZxfr5oY/7Ox188Of9DwA", "might": "data:image/webp;base64,UklGRnAAAABXRUJQVlA4TGQAAAAvC8ADECdAmG00jvlz7H0Wp6WgbRumJP74ExwCNW0bMDkLt3QXmPkPAKk/m64PMGgkSVGPgwUFBwZuT8GDf1OkIaL/E8C3ucDWELSrC6sZ0K6esGYJ2zPBrnrZAruThwCOX85P", "armor": "data:image/webp;base64,UklGRpQAAABXRUJQVlA4TIcAAAAvD8ADEC+gKAAZOKqGBr4CsEMh2whwahhn8SmcgrZt2FhxtFD2z/wHAEr/zzNJkwkO2khypBoG2zM6ABsIJAKXEAT+YP5BRPQ/kECCvUh3QFfx5qSapTat+3y3s3ju57f6FerPPV2iP2uWgHzO/2PW4ZDGLGGQJOVfHecyyK5VHLqxXwEyJAEA", "health": "data:image/webp;base64,UklGRoAAAABXRUJQVlA4THQAAAAvD4ADEC9AkG2bG8swpnCBE2Tb5qYyjhnc4ATZtrnBzGIGB/j8BwBY2Ub1HxxCku1acwzO3CBwH0EgOAgv+dP8zxDR/+Q3BQOuL/Kb5HReXnH51fic135ux9lnudZajhyqFZTqgOy6B1A6AHJUAFADADL4Bw==", "recovery": "data:image/webp;base64,UklGRoIAAABXRUJQVlA4THUAAAAvDcACEDegoG0bpnSLuzsEPhNFEQhBRv8unvooYY8PmQjGTxrpn0UHkzMISBL7/zkCwH9XE2mpSUvlwKiNJEf1Gh6rY5AQTGAw997Mn8Qdhoj+J58qVIEYvIt6nztN6lHUVep9pqsQmj6gaj4ChA+A6gLA5gcA", "cooldown": "data:image/webp;base64,UklGRrQAAABXRUJQVlA4TKgAAAAvD8ADEE+gqJEU5mgOEMIXM/gPDpoQJQGANtwqeMJQF32jTC2B2kg2qPfI5L9UJ/qvRBPM/AcAzLT/YmU6198pHfNcxEtvcBTJtup8hh0bIAW/4mCugHCyZFAQBZ8EkF/SENH/CVBulXD4Wl55BTrH6wQ4uN6Rpm8wPWFqeELza2ama44zplcKcHC87gKUrte1m2I/ut7rvT3Gb8vLk6nq5f+pqmyPUxM=", "area": "data:image/webp;base64,UklGRpgAAABXRUJQVlA4TIsAAAAvDsADEE9gGpKVE3jvJdBvJgnkL5CRokZSmLODfV4oaBYw0QWQaUA4zUcIodVTZP4DAMB9ERcZVdRxp/RiQwM3tW1H1X5VWuY6FlgoQAISkJAqDuhjGfiDhIj+K0zagEnnLcgg/zhkJTJK1FSCmlrURIun/6K/lha6aznvwxFP0017P8G6bQFd3/siAA==", "speed": "data:image/webp;base64,UklGRqwAAABXRUJQVlA4TKAAAAAvD8ADEE+gkJEk5kDOn+EEnqQXIaMByOiq/7NzJL7YAytkIhhfRP9NJysd3PwHAIB3IVpI7I2+T3lrNnBaW3vbPMEfGsk8I7hwj5AlVHA6rL8klp5/9Ij+B/CoJgCnML8BclipwCNZLgYPnd/1D6cwHNof8ryp5njEoVQPrXbt6HjEuTcPp7AxdZCC+ijQ6vF5FlgvSzsJtNYOZwcPM+sA", "duration": "data:image/webp;base64,UklGRrYAAABXRUJQVlA4TKkAAAAvD8ADEEdApgGhh8tlCuhfy6WGQjaSoPVYhu8szh/oTmnbSMzdF1b33/LRw5//AADA/9sFcXCXJ0WuOnBj27aaHPyX/+I9M/AJaEtF69DGk9ITBs4gIvqfDn+DmwFI+7aJf784aeFK0gxSfT4ypGmw35+McfyyPJ93A7v7LZY/v0XmZvPZHKK7O5t+uYV3aXrtW1efj2YtUkkykDSrVdLgTCTpMrAtANsCAA==", "amount": "data:image/webp;base64,UklGRooAAABXRUJQVlA4TH4AAAAvDUADEEegqG0bqDSqfrvrOQDjD2s0jARAwgoOMQPU/9FokkwDwiufMHKaBoqY/wAAwP8T6S64YtdqZgyMYttucplvIJhgnZm+pwmIA+IBA913ioaI/k8AnUYKc1pA/5MHklmsQTlM3kU5yEdlXiraQZKKjiYJcP0OQI1DUQU=", "wings": "data:image/webp;base64,UklGRo4AAABXRUJQVlA4TIIAAAAvD8ADEC+gKAAZOKqGBr4CsEMh2whwahhn8SmcgrZt2FhxtFD2z/wHAEr/zzNJkwkO2khypBoGGwHcM3jdLIBLADY0fzILIqL/AUAw9rr3/VABwrGUIdxSS3DJz99pYfmS3K62Pn2ZPpc8GX02yY3+an4ZLl+eDMJ7vxngn6MBhAgA", "magnet": "data:image/webp;base64,UklGRpIAAABXRUJQVlA4TIYAAAAvDUADED+gIJIN6mX50URR8YRQQ03bRlD34uj63GE83kcgQNEep72ywAELzH8AAPh/s9EWao61Z3Bb27YSHdb6kuJUQO6Q2msAyynBZ/oP6CGi/8lXRIAOUKCmLeggTOe3p8vSubZqz7attmo/lq20qjvK8raKsC3/Pajzn3TQuZ6jABHhCw==", "luck": "data:image/webp;base64,UklGRtgAAABXRUJQVlA4TMwAAAAvD8ADEF+gFgAQJo55DoslGlMUKakJAKRh3RsKEN4c/gbyVRPJVvMzuaalw0T2iyyEKGzbBsnfY7p7AQAAwON4DJXcxmjnXsVlnN4i8W/tefH1gRtp25zkt2LsJKfKrD2pzdDuwjfDMZZya6U373AFTxzR/yBSUkkiElddf2lEDx73xzWJhc2jvWjKyAFrK6+IhrrEy5/rMhrGp3tDVSGb3B5VhXjyUZfRgKeP6N6VeCo9ByxdioUB9v9EDx73x/BA4qrrL9ckUlLJzQo=", "growth": "data:image/webp;base64,UklGRsoAAABXRUJQVlA4TL0AAAAvD8ADEFdgpraN/z8Z9M9iNNkcUUxqKGrbBuq7eIqg/KVdPAZhUxNJCvNAlQTg3yJlnP8AAMD/dxdyTY2aaRuleVwinODGtm01ufEWp3cp40nnUuJtPK0nc6BmBlSMEwYR0f8eAAgBoOSwYzHA4EI+hkec28hKqhsRLcbecpwTUTE2xlFBnJWFspSfxFnuxVZ+EJWdCInVEmdX/gjugzjnwklPfnxW3z+sV2A9iJErv0V3AVSpkLQEgGoYCAAA", "greed": "data:image/webp;base64,UklGRoQAAABXRUJQVlA4THgAAAAvC0ACEEegppEU6GTcAR3tV+JfFVbUtG0ElUh7/3wsjj+gG8g0IGRwmzI+/Tso4Zj/AADAoDDo9y4sf+pqJ8Amsm0n935C/UzggMECbQ5lxsCPCuAL/yIi+p9I93cpgDP6CuJiWCnOm5XS6HqkuN+slK81G1ECHVI=", "curse": "data:image/webp;base64,UklGRs4AAABXRUJQVlA4TMIAAAAvDsADEJegKJKkhpx/GcwgAK14SgLAwdlQGgBIQ4ZEHSaj1T981oe2HrEURZLU3B0ZnhhISjCDUvCR30hg/gMBQADhf/5IbgR9e7h0g0nDBgXl0fX/ABldN634zJRxX8VbaHEMDBpJUrRz9Iz+3bKEnoj+T0D82dlu9kOn+3bTKa+MgFpAp7yOyQa0X8qN/YYbFKhMnMmeBqygiXMSxzT4KV0Me6DFpBGjbQ+wWOxqbXG7q0/2zH6H1WO2eN61aYt/AQ==", "revival": "data:image/webp;base64,UklGRpgAAABXRUJQVlA4TIwAAAAvD8ADED9AJmCxX3HxNCCIIGoCEIL0jyKOEnbuWYkGLJZV/5/gA1Fy1fwHAOC2/hdZM2bIArcB2LYN8AHokr2foD39BM1uuED6f3C5IaL/E4Cjw2kj7AAg2yYwrE6QN6lYBXUJOz7U4zKcPoWaHs2zZCpNj5IrNaYp1z9xHlP9d4DO478jAJ07Yi0CAA==", "torrona": "data:image/webp;base64,UklGRvoAAABXRUJQVlA4TO0AAAAvD8ADEN/ANrKtVI/IQwtphOJpgtBK8O/SBtvItlLdmCrIqIRmaJUmLHSXr2wCAEiDuycgEEVpwyWTd98S+PwHAACA//97MG3obuxqeM0rw8mhVGikgr8JOMhw8/tX5AVZLZbfcMlzXu98dWU4AdiKEVsIwvz8ZNgAh20kKdIc09zOQvfdQ/6JLsUQ0X8FjmRIKPb8iDQJSD/hFOg7L1V0nUteoHHP2TmvZL1esmPc+GGlXv/ov2x/LNNJ2EsBC13+RLRBhI5cluliiikTqnquO83CIFV4UyKYVWQwU3VMRV2POs+UtTUEY9FddAgA", "ring1": "data:image/webp;base64,UklGRvQAAABXRUJQVlA4TOgAAAAvD8ADEL/AJgCANFz2UowKNHd3uOarwTQAgDSQnIP4h7NJNHeZj3EkW4koTgSh+ZAFYXNzXXff+Q8AgP//77iCGjF+UdxIVCqvUWHOYTQaAz2VCpHHaVtcXjuSHzSvAuYegxK5sKAmXHIHEsCwbRtH+d58vsTf9l/179sIEf1X5LYNUhic6Bn2lyp8rbrzHCfp4aZp2qJdN1dV1XTjMO0TiuuqPnZmkjtkOtt2lyIinJBhOKe4zfDIkDD1bjeE37BPuiOTNBG492ldIZOT7hGR5u2yWRA5rcsyzzffEtO2LcUPAQD176kG", "ring2": "data:image/webp;base64,UklGRg4BAABXRUJQVlA4TAEBAAAvD8ADEP/ANADAJHNFG/9fQyS7uxP9DYYBABaZs/+/zLbtGAcAYOSQ7XZoHE5v97NJIAgR/zcTAAD///961iNSZus5J1kQ3HLF0Q0ie/uyV1tDWbyX8ClcLjmeRKt/9LBz8axVWGU7Ir6dShkkzHBolHT09JvzH7AZqXAKXFeFRbjdDoexbTXRM+fw8bOEZ+i/TtDZEiL6PwH4N9MP5N1110Pm2DRN23XXszFhUZTzcPXP+ggA1mU1LqqqshmC3TwtZIwxBhXC9N1FpCGqkLL2AVmGzPacOauqoIjEjPPeEAyqIZC0P38QAEWC9d79/EEkQUSt99YQWQYRkV2Jd6bIAwA=", "sign1": "data:image/webp;base64,UklGRr4AAABXRUJQVlA4TLIAAAAvD8ADEF+gJAAQBE8k/p8k+g6lkSRF9/pfcooQyJ7MwCho24Zpuw3F+HP8kqK2bSADKX98u/4LAIgfT6O86uqhdj8flwZyDHSxRX0THNW27TR3LZ4BOrwRUnod4+EjAJJMeyKgD3uzEHnvi4jo/wRAxgQZ7WtNHLSa1XVOYgi4Rg7Ezu8aT3PKc5OH31/9fluz475S24MZq5zy/MLIDcSPXQMAD3NGYuAKMn63GgyVLiYA", "sign2": "data:image/webp;base64,UklGRqQAAABXRUJQVlA4TJgAAAAvD8ADEE+gpJEk5u4bevT+TT5sQtQ0kgKdhOMrjwoJuEcajYK2bZi221CMP8cvzX8AUB9H7udluybYGlQJ0V6C49p2kCgHXTss3RqgAilA91CCs9WZ9J0UEdH/CQBPAHZOufsQiOdoCZn/mBN3DwQyJkEQlKvqDhdqiKlW9HU9VNHlB1TQ7UAAAPBwTAjoJzcdAtPEwHoCAw==", "omni": "data:image/webp;base64,UklGRvoAAABXRUJQVlA4TO0AAAAvD8ADEN/ANrKtVI/IQwtphOJpgtBK8O/SBtvItlLdmCrIqIRmaJUmLHSXr2wCAEiDuycgEEVpwyWTd98S+PwHAACA//97MG3obuxqeM0rw8mhVGikgr8JOMhw8/tX5AVZLZbfcMlzXu98dWU4AdiKEVsIwvz8ZNgAh20kKdIc09zOQvfdQ/6JLsUQ0X8FjmRIKPb8iDQJSD/hFOg7L1V0nUteoHHP2TmvZL1esmPc+GGlXv/ov2x/LNNJ2EsBC13+RLRBhI5cluliiikTqnquO83CIFV4UyKYVWQwU3VMRV2POs+UtTUEY9FddAgA", "sword": "data:image/webp;base64,UklGRpAAAABXRUJQVlA4TIMAAAAvD8ADECdAmG00f6oh7H0kh0KkbTMHUzT/6I4OFLVtA7Xdxp/awNy/+Q+A71voZSYwiCSp0RAMXBDwSQBQCIj+Vb2IiP43ARgJADwDh1EBfJcJMEQT0PmkQZkUkY2ldtUub8V0/XhJo8idikjTZrXUV+48jidMNnx51C6Zw5c5GTgAAAA="};
+Object.assign(ICON, {"whip_": "data:image/webp;base64,UklGRpYAAABXRUJQVlA4TIoAAAAvD8ADEDdgJgAZp1sE/dO52WqoCUCA0WKVk1oaj5pGUqB7S6Tg3xQKqOY/ANCbsXC15z28B0axbTe55DugrRPauiOgGsBBmn8PFA0R/Z8AfvaTPHoXVwHsNfkVGCuZvKB9XGXv0Ffl5r7B1vQro3rblbXVtnIr3cUo7Ao7Tjx0rORBGssXjEEDJAA=", "magicwand_": "data:image/webp;base64,UklGRuQAAABXRUJQVlA4TNgAAAAvD8ADEJegNJKt5kfQX1EJVeApHEcBSTHo1IeiSJKaC+Rs4GwgEAeIQwQvFHCltrZeLP9dgh20hjaNDSygMoBSjuK2bSNm6+udtls3AABB/q/Y579touGNvewhJ3Q2GtMpySdliJzCOupcuzZNOdt+17sODtu2kSTt7nk9/9xc/93Ocy1E9H8CAEniVKW4aNKkkp1cBLobqOSPk3MRNCbbn+hpllP6PCl6V+yYohcCVLKjazfoFqBS7K+7QcyS5P4bnNvv2DVmv2PVbk34DQvE2tdYHLr+AwA=", "knife_": "data:image/webp;base64,UklGRqoAAABXRUJQVlA4TJ4AAAAvD8ADEEegJADQhv61CIDFf4t6WxCFjCQxJ3P+Jt8LxD+EokiSmkv+NWUlZPgiYP4DAOp/9glNkZRmI3PlPv8E3Ma23UQfTypKsDmiAgaZCkTsISVChJ79fa9rIaL/QgKCypFaKcZiC6plDIPMBw0aEeGnm/2F+aYfZZHn1O6UoAEh5apfJ2PM/5n48MdKccYo1MOUhuSE2ZtfiN8DAA==", "axe_": "data:image/webp;base64,UklGRoQAAABXRUJQVlA4THcAAAAvD8ADEDegEAACNBdAACkcSQQBJPFkMudAI6yimJEkODgXwnjMdwF2/gMAwDX40o6d54FRbFtt7nfApyiIAgYDqfueNSv8e2gaIvo/AYyX0iifVvkL1H+QKn9C/Qfq+WuY55WKeLTC0zqjExQIyekkgKak1KoMAgA=", "cross_": "data:image/webp;base64,UklGRr4AAABXRUJQVlA4TLIAAAAvD8ADEGegJgCQBvjmSYNlIjP7msQI1jAbScY/QjqhAin9J/qhKJKk5n7xfSISEvASRaANcRSBpI2sf+Y/AIDwj6bcUUSX+/C4f8dOsyq9Hzt9u2wAp7Ztt9H+cpkDCZXOqRIKpzbbDIRABD4Dp9Z9mBkAxjUYIvqf/u+sgc0NOv35CC7rXQmy8xDEx0wgy9NZMxCLpN0ky1N/zSAWiW8IWZ56folF4lUhpp4v9BOvMvAC", "bible_": "data:image/webp;base64,UklGRpIAAABXRUJQVlA4TIYAAAAvC8ADED+gmJEkaI7fYM0CLMByrquCSDao9x71BJFDUBV+Bcg0IDhNAGGk0D+Hf/4DALt2KGX/N10bcxlgVdtWFOZvLxhg1n9eAaYChpAGLvovX4iI/k+A4LfWmlq+MYZcnrd3l+5IpJIHoFPgSvY61WNtOoX1gE4hlx88MzOAniIRaQEAEg==", "firewand_": "data:image/webp;base64,UklGRsQAAABXRUJQVlA4TLgAAAAvD8ADEGegIJKtNP0TCARwhwJOLNREkiKHhz9DA6QouPyUBgDSKmJkIp0PSEt9YDXnPwAAwPcX2aqeGy+oMX/TLRZMdHkMG/LBba1ta/J2Ce6+BgvYAtEqLe4tU6TCqo8N3N3t2wqZIaL/E4Df1BvACiCmlloD00qJzLPcWYESGeZN0zZIZG5cXlvdapyN7BTkUfyyHrCR5+yRAg2400fN6Fsw8KT9fhuA2JW/mJLUwGcsKnwZrPA3", "garlic_": "data:image/webp;base64,UklGRrYAAABXRUJQVlA4TKoAAAAvDYADEGegJgCQBhpA/wzU2Tf3sIA11EaS02iUeoniqYpSiCDyRgIggRP84ooTjUZ3GDU7/wEAAPj/e/3MGDMXlkYmiqlX4WZCoSrBabXtTfVF0kHjOmjGYBtUsB1cDqppfL39bpCsxQ4R/U/c2SQBYJFTSECedeEAxG3XjWDUoUUnsZ46xShtSx+OH2X7Lcnnp5g8ff7+xOSrEH+CnYu/DZj7zyYATIvgDg==", "water_": "data:image/webp;base64,UklGRswAAABXRUJQVlA4TL8AAAAvD8ADEIfAJgDAJNMC7vIZVLCLxOTi5LIaagIAaRgfPxTgJQRhaWMJM/htlQQA2uCOIgARkAQjACmnf4fZN/8BAPz/98aWWVx+zLlUJfdzSgQNULh6OjrH5pthpQ4MeyUwjCRFESzyAif5h+spRPTfQNo2bzsBl0ELGNAJVG715rV2m87cz9OYGy4dRQuOeH0TXEqU8r7O2OMY98UUVUSL2uMeFbSoqvmHVxAtqo5ZOmh2egy6FrOOQ7W2VuuUAAA=", "runetracer_": "data:image/webp;base64,UklGRrQAAABXRUJQVlA4TKgAAAAvD8ADEE+gppEU6B7s4L8mCEAIFTVGTEWy8Zq8Eu8hh+BGEJ8CKI0kSTmI6PI3LC+W59fzHwAA4N2VL76+7SHEiq1XzRS4jW1bVXZwO/gteIrFX57GeBsOqUPKfG2YGiL6n4ASAPJaAXB4HATIs0fogfpWP35CfnVLffEc3ovR6nEWpRbBXCmp1Xa28rXkw3d57D3UQ7L7CORD9nYAj6wXgPziAUAJ/wA=", "lightning_": "data:image/webp;base64,UklGRtIAAABXRUJQVlA4TMUAAAAvD8ADEI+gJpKt5n+g/R6IZmjxbyDHMtlQG8lW8iMKsdwboRV6drcYJQGANlQgABJHIIpSZUdj94/dBCSJ9P9zAQAA4P+/2a52inaPvTrCTiA7+rx8QUlP4NQxzidFDjnGshVg0EiSon44+r8+8C/3UUJE/yeAP/OLcgAFQCUnrgdom1W5PTH0trY+PIG0GXZrrcYhsC2hi4p9CCxBOA/AV3w4eZEN3aJiv5ANu21W45BbQ29r68Pjcha01qqUywGgAmS+AwA=", "pentagram_": "data:image/webp;base64,UklGRsAAAABXRUJQVlA4TLMAAAAvD8ADEFdgKLKN/7+rSAJRThoNpHBSQ00EJBBHCxpQgdX+PVwt8KiJJIV5AYSeEheYSL5RgBkEBEX+jxYA/P93xLhWLlZ5hx57fFVS1oDbWtvW5I2nTpXSJxDg62AD/aCFGfzv0An8+xfIoDZDRP/Vtm3D2FNJfQNd2mBGhPGEi4IDE8uhpl0OHLSqZQ1U8hJZYForUT/lTF8kP6IedEWnpG/QqtBUPLHZNv+EPlww44IOAQA=", "bird_": "data:image/webp;base64,UklGRuQAAABXRUJQVlA4TNgAAAAvEYADELfAJACANvzvUNTAoYlDypfiKgKgdpqwra2tCTlDmaGlNVSO5XZOoTPEzhk8h2kAgJD8+j+GqMv2MZgBRAuoDPHcf2H+AwAAAHDHh/2r/jEvbJoRDCnk2eX2oy64ywV0y78cmwfnb88ZRYmdYXpWJxxJ2rN/8wwMGklStPPM/O/fK7+Dnoj+T0B8qbK230zdZDug2q9Q3/arHWxU+wUqmgwIqs37VXaZ2pU2X6VO7NROtiuUpza2La4Q5Ok5Hs7XuhsxYBGXGoFlBMWtDg8IiIcC4mc=", "guns_": "data:image/webp;base64,UklGRp4AAABXRUJQVlA4TJIAAAAvD8ADEEegppEU6B404L/EBwJocUCNGzUBkDD0b8RJAZwxjOChpm0k5ig/wz49j9u/AJj/AODvb1GnGpf6lhq3IkhgFNt2k0sVgISAA5BQDSRh2THQl+winO4gov+7APV4gjxPQtGAisRqei5dUfdpLAKfOhPtVvocZrzYzbVN1bXlf5qSHuzGqwGmavAB8hEAAA==", "cat_": "data:image/webp;base64,UklGRqAAAABXRUJQVlA4TJMAAAAvD8ADED9AJoLx/WMZFXCimNRQ0LYNU/7kLo9C2NS2bcN4bf8/mrHOfwAA+H+70MSltJUFbmvbTaSvDqRZyqECqmAoNnxvTFIDS/0nU0NE/ycAUDMA0DRUA5AO/eACve7fQ91Cj6ffVDdIl/4/V5c0Dv+ZLom0tCDkTu5uDFFy23wDbfyybYE7GS6A3iMMANQMSwEA", "mana_": "data:image/webp;base64,UklGRswAAABXRUJQVlA4TMAAAAAvD8ADEHegKJKk5vIRfvj3gA4c5D8qwIai2DYov5UMtmIIrYQtPYwM1EaylfxMsMyt/5A2aIGIBqwDBARF/o8WAOD/PwR61olvYZZcT9Sptrnl6J50JCoU6Tb9Lbiptm1Z7oPTgAZ/AnaHlY2VyXZ5cBndrQMlaOFvmu8LEdH/CcC7h2Q9CjNIdKuFc+q+mH/GKm9DNPUy3UK0JJlC1F5jKYCKXuaTzDH15ch6TkeLeT+AdFs9hYBMoe+B58MHIQA=", "pinion_": "data:image/webp;base64,UklGRqIAAABXRUJQVlA4TJYAAAAvD8ADEFdgpgESIpCADjRg9j9NwvytoSAAkITawQguMNjWVX1AJZGsUK/I4+NpgKV/BApgQTP/AYD/v/Oc0OpgaHlOIzSv8WJLYBPZtpNTfQPfAVZwQPepMmhAADPv4QCqnHxmFET0X2HSBkx3X4FWSwP0QW79IsItlfWNwTVyOocCd5BDBSD0gg7g0EUB1NX6b4iIAAA=", "lancet_": "data:image/webp;base64,UklGRtQAAABXRUJQVlA4TMcAAAAvD8ADEGdgGLKVd/++ny6DBCLo9CeDPBRFkuIQ/jjAECqxhAEuOcivq1IT2WrE0CIDRUg99dAdSRSkm/8AAAAlZPOYaDjrj+qJm0/GF0tW9VzgxLatZTlvBu/hllwqI7DE37Ho0r72z4DuEh3iH4l/YooR/Q9ATQBoNmKAWnHcFXDN/PcYQ3OPbW/2kzBZGD9H62xohddzVM46K257s1rWmZdfXW8xlwuK+XLLNKdePR8T/UvQ6Ri4nJmlQP9J8wWwjZ8EwEwAAA==", "laurel_": "data:image/webp;base64,UklGRp4AAABXRUJQVlA4TJIAAAAvD8ADED+goG0U6F43iEYfJrBBEEASzQQjDDbbSBOokSQD2guh2P8fSkBQ9H80AQDgyj4jttm7nv0Gx5EkRU6NBzOAA7rfHKH/ig5ZQuC/DzgR0f+AiDDA17uV03b8DHzpXxP4/t4/Beraz1eBS2q1mU89+5FmTj1XadxSz5dU7vd68qnSLSKyTwV4JqaBG4QBAA==", "vento_": "data:image/webp;base64,UklGRsAAAABXRUJQVlA4TLQAAAAvD8ADEFegqG0bqP92AG7+GsG9xkNVZBvUJYACb5IJLooPJQGANsjfgBJ0oL8gzNvM/AcAAOjspOGW2BeKmfw4aK89JbiNbVtV9p/bwMclc4v8W4ZD6BI65NYAFfA7wKVNqyGi/xMA5IXPzFKTj9lhbQhk9tplpsFktrE0DdrTjaWtRfV0TllNE7XWDk4uM1E97s4tvxLV3QqF0xqUjtW3nQXV3Y+NFaAUtj0AatWpfOBQ+Bc=", "bracelet_": "data:image/webp;base64,UklGRsoAAABXRUJQVlA4TL4AAAAvf8AfEDUwiiRJig1EIWqt4AQXixEkdBzD8mpORW0bMezL5fYCdED6IRKA0LzQGar7YeT9/xm2beNIGsDO97rAd9lwItvmGpyrX1NXLBVT8se48zZ5W56SP8ab95f1U3IK9sTeCPaZ36lLJViXkkt+0KcuJadgH+ztg331FA72zi11KTlmMwX1lJ0A8ucfdfPmk/qUfk3V580fx6Xw41yTt+XvWfLHeCl13z3mFuG5pi3/zjJ3nP8/j+Bx1fAD", "sword_": "data:image/webp;base64,UklGRoQAAABXRUJQVlA4THcAAAAvDsADECdAmG00f6oh7H0kh0KkbTMHUzT/6I4OFLVtA7Xdxp/awNy/+Q+A71voZSYwiCSp0VaxBgAFHwRQtwj44F/VBQ0R/VfYtg0yZngDCZ8tScTdHT8803QagXUQAUeLsA4kJQbY/YvCGMNlW747/VH+JUk/AQA="});
+const EVO_IC = {whip:'whip_',wand:'magicwand_',knife:'knife_',axe:'axe_',cross:'cross_',bible:'bible_',firewand:'firewand_',garlic:'garlic_',santa:'water_',rune:'runetracer_',lightning:'lightning_',pentagram:'pentagram_',peachone:'bird_',ebony:'bird_',phiera:'guns_',eight:'guns_',gatti:'cat_',song:'mana_',pinion:'pinion_',clock:'lancet_',laurel:'laurel_',vento:'vento_',bracelet:'bracelet_',sword:'sword_'};
+const EVO_DESC = {whip:'공격 범위가 커지고, 치명타로 적을 처치하면 체력을 회복합니다.',wand:'쿨타임 없이 쉬지 않고 연사합니다.',knife:'바라보는 방향으로 칼날을 끊임없이 쏟아냅니다.',axe:'거대한 낫이 사방으로 회전하며 퍼집니다.',cross:'부메랑처럼 돌아오는 검을 던지고 치명타가 발생합니다.',bible:'성경이 쉬지 않고 계속 주위를 돕니다.',firewand:'적과 벽을 관통하는 거대한 화염탄을 쏩니다.',garlic:'오라가 커지고, 적을 처치하면 확률로 체력을 회복합니다.',santa:'장판이 플레이어를 따라오며 점점 커집니다.',rune:'튕길 때마다 폭발하는 레이저를 쏩니다.',lightning:'같은 자리에 번개가 두 번씩 떨어집니다.',pentagram:'적만 지우고, 경험치 보석은 끌어당깁니다.',peachone:'두 비둘기가 합쳐져 넓은 범위를 폭격합니다.',ebony:'두 비둘기가 합쳐져 넓은 범위를 폭격합니다.',phiera:'두 권총이 합쳐져 네 방향 탄막이 회전합니다.',eight:'두 권총이 합쳐져 네 방향 탄막이 회전합니다.',gatti:'거대한 고양이 눈알이 화면을 돌며 공격합니다.',song:'공격 범위가 넓어지고 적을 느리게 만듭니다.',pinion:'이동하며 충전하고, 멈추면 한꺼번에 발사합니다.',clock:'적을 얼리고 주기적으로 화면 안 적의 체력을 절반으로 깎습니다.',laurel:'거의 뚫리지 않는 보호막이 생기고 받은 피해를 되돌려줍니다.',vento:'가로와 주변을 동시에 베고, 치명타 시 폭발하며 체력을 회복합니다.',bracelet:'불꽃이 강해지고, 최대 레벨에서 한 번 더 진화합니다.',sword:'화면 전체를 휩쓰는 추가 공격이 생깁니다.'};
+// 진화 무기 능력치 (Vampire Survivors 위키 Weapons/Overview Stats, 진화 무기는 레벨이 없음)
+const EVO_STATS = {
+ whip:{dmg:40,area:1.3,speed:1,amt:2,cd:1.35}, wand:{dmg:30,area:1,speed:2,amt:4,cd:0.5,pierce:2}, knife:{dmg:16.5,area:1,speed:1.5,amt:6,cd:0.35,pierce:3},
+ axe:{dmg:60,area:1.2,speed:0.8,amt:9,cd:4}, cross:{dmg:77,area:1.2,speed:2,amt:1,cd:3.3}, bible:{dmg:30,area:1.75,dur:3,speed:1.5,amt:4,cd:3},
+ firewand:{dmg:100,area:1,dur:0.1,speed:1,amt:2,cd:3}, garlic:{dmg:20,area:3,cd:1}, santa:{dmg:40,area:2,dur:4,amt:4,cd:4},
+ rune:{dmg:30,area:1,dur:3,speed:2.8,amt:1,cd:1}, lightning:{dmg:65,area:4,amt:6,cd:4.5}, pentagram:{cd:60},
+ peachone:{dmg:28,area:3,dur:4,speed:1,amt:20,cd:0.25}, ebony:{dmg:28,area:3,dur:4,speed:1,amt:20,cd:0.25},
+ phiera:{dmg:15,area:1,speed:1,amt:4,cd:1.4,pierce:7}, eight:{dmg:15,area:1,speed:1,amt:4,cd:1.4,pierce:7},
+ gatti:{dmg:30,area:1,dur:7,speed:1,amt:2,cd:8}, song:{dmg:40,area:6,dur:2,cd:4.5}, pinion:{dmg:35,area:1.4,dur:2,speed:3.5,amt:1,cd:6},
+ clock:{dur:6,cd:1}, laurel:{cd:8}, vento:{dmg:20,area:2,speed:1,amt:8,cd:2}, bracelet:{dmg:30,area:1.2,dur:0.6,speed:1,amt:6,cd:1.2,pierce:5}
+};
+const EVO_NAME = id => (W[id].evo.to||'').replace(/ \(.*\)$/,'');
+const icon = (k, cls='') => ICON[k] ? `<img class="ico ${cls}" src="${ICON[k]}" alt="">` : '';
+
+// ---------- 능력치 정의 ----------
+const STATS = [
+  {k:'maxhp', ko:'최대 체력', t:'flat', ic:'health', base:100},
+  {k:'recovery', ko:'회복', t:'rec', ic:'recovery', base:0},
+  {k:'armor', ko:'방어력', t:'int', ic:'armor', base:0},
+  {k:'movespeed', ko:'이동속도', t:'pct', ic:'wings', base:1},
+  {k:'might', ko:'피해량', t:'pct', ic:'might', base:1},
+  {k:'speed', ko:'투사체 속도', t:'pct', ic:'speed', base:1},
+  {k:'duration', ko:'지속시간', t:'pct', ic:'duration', base:1},
+  {k:'area', ko:'공격 범위', t:'pct', ic:'area', base:1},
+  {k:'cooldown', ko:'쿨타임', t:'pct', ic:'cooldown', base:1, lowGood:true},
+  {k:'amount', ko:'투사체 수', t:'int', ic:'amount', base:0},
+  {k:'revival', ko:'부활', t:'int', ic:'revival', base:0},
+  {k:'magnet', ko:'자석', t:'pct', ic:'magnet', base:1},
+  {k:'luck', ko:'행운', t:'pct', ic:'luck', base:1},
+  {k:'growth', ko:'성장', t:'pct', ic:'growth', base:1},
+  {k:'greed', ko:'탐욕', t:'pct', ic:'greed', base:1},
+  {k:'curse', ko:'저주', t:'pct', ic:'curse', base:1, lowGood:true}
+];
+const stepAt = (lv, every, per, maxSteps) => Math.min(Math.floor(lv/every), maxSteps) * per;
+
+// ---------- 캐릭터 (hpFlat: 기본 체력 100 대비 증감) ----------
+const CHARS = [
+  {id:'antonio',ko:'안토니오 벨파에제',en:'Antonio Belpaese',w:'whip',hpFlat:20,base:{armor:1},desc:'10레벨마다 피해량 +10% (최대 +50%)',lv:l=>({might:stepAt(l,10,0.10,5)})},
+  {id:'imelda',ko:'이멜다 벨파에제',en:'Imelda Belpaese',w:'wand',desc:'5레벨마다 성장 +10% (최대 +30%)',lv:l=>({growth:stepAt(l,5,0.10,3)})},
+  {id:'pasqualina',ko:'파스콸리나 벨파에제',en:'Pasqualina Belpaese',w:'rune',desc:'5레벨마다 투사체 속도 +10% (최대 +30%)',lv:l=>({speed:stepAt(l,5,0.10,3)})},
+  {id:'gennaro',ko:'젠나로 벨파에제',en:'Gennaro Belpaese',w:'knife',base:{amount:1},desc:'모든 무기 투사체 수 영구 +1'},
+  {id:'arca',ko:'아르카 라돈나',en:'Arca Ladonna',w:'firewand',desc:'10레벨마다 쿨타임 -5% (최대 -15%)',lv:l=>({cooldown:-stepAt(l,10,0.05,3)})},
+  {id:'porta',ko:'포르타 라돈나',en:'Porta Ladonna',w:'lightning',base:{area:0.30},desc:'공격 범위 영구 +30% (시작 직후 일시적 쿨타임 보너스는 제외)'},
+  {id:'lama',ko:'라마 라돈나',en:'Lama Ladonna',w:'axe',desc:'10레벨마다 피해량·이동속도·저주 +5% (최대 +20%)',lv:l=>{const v=stepAt(l,10,0.05,4);return {might:v,movespeed:v,curse:v}}},
+  {id:'poe',ko:'포 랏초',en:'Poe Ratcho',w:'garlic',hpFlat:-30,base:{magnet:0.25},desc:'자석 영구 +25%, 최대 체력 -30'},
+  {id:'clerici',ko:'시스터 클레리씨',en:'Suor Clerici',w:'santa',hpFlat:50,base:{recovery:0.5},desc:'초당 회복 +0.5, 최대 체력 증가 (출처마다 +30~+50으로 달라 +50으로 계산)',chk:true},
+  {id:'dommario',ko:'돔마리오',en:'Dommario',w:'bible',base:{duration:0.40,speed:0.40,movespeed:-0.40},desc:'지속시간·투사체 속도 영구 +40%, 이동속도 -40%'},
+  {id:'krochi',ko:'크로치 프리토',en:'Krochi Freetto',w:'cross',base:{revival:1},desc:'부활 1회로 시작, 33레벨에 부활 +1',lv:l=>({revival:l>=33?1:0})},
+  {id:'christine',ko:'크리스틴 다베인',en:'Christine Davain',w:'pentagram',desc:'레벨 +1 상태로 시작 (그 외 능력치 보정은 미반영)',chk:true},
+  {id:'pugnala',ko:'푸냘라',en:'Pugnala Provola',w:'phiera',w2:'eight',desc:'레벨마다 피해량 +1%',lv:l=>({might:(l-1)*0.01})},
+  {id:'giovanna',ko:'지오반나',en:'Giovanna Grana',w:'gatti',desc:'레벨마다 투사체 속도 +1%',lv:l=>({speed:(l-1)*0.01})},
+  {id:'poppea',ko:'포페아',en:'Poppea Pecorina',w:'song',desc:'레벨마다 지속시간 +1%',lv:l=>({duration:(l-1)*0.01})},
+  {id:'concetta',ko:'콘체타',en:'Concetta Caciotta',w:'pinion',desc:'레벨마다 공격 범위 +1%',lv:l=>({area:(l-1)*0.01})},
+  {id:'mortaccio',ko:'모르타치오',en:'Mortaccio',w:'bone',desc:'20레벨마다 투사체 수 +1 (최대 +3)',lv:l=>({amount:stepAt(l,20,1,3)})},
+  {id:'cavallo',ko:'카발로',en:'Yatta Cavallo',w:'cherry',desc:'20레벨마다 투사체 수 +1 (최대 +3)',lv:l=>({amount:stepAt(l,20,1,3)})},
+  {id:'ramba',ko:'람바',en:'Bianca Ramba',w:'carrello',desc:'20레벨마다 투사체 수 +1 (최대 +3)',lv:l=>({amount:stepAt(l,20,1,3)})},
+  {id:'osole',ko:'오’ 솔레 미오',en:"O'Sole Meeo",w:'celestial',desc:'20레벨마다 투사체 수 +1 (최대 +3)',lv:l=>({amount:stepAt(l,20,1,3)})},
+  {id:'ambrojoe',ko:'암브로조',en:'Sir Ambrojoe',w:'larobba',desc:'20레벨마다 투사체 수 +1 (최대 +3), 시작 직후 일시적 투사체 보너스는 제외',lv:l=>({amount:stepAt(l,20,1,3)})},
+  {id:'gallo',ko:'갈로',en:'Iguana Gallo Valletto',w:'clock',desc:'레벨 +1로 시작, 5레벨마다 성장 +10% (최대 +50%)',lv:l=>({growth:stepAt(l,5,0.10,5)})},
+  {id:'divano',ko:'디바노 델마',en:'Divano Thelma',w:'laurel',desc:'레벨 +1로 시작, 5레벨마다 방어력 +1 (최대 +5)',lv:l=>({armor:stepAt(l,5,1,5)})},
+  {id:'assunta',ko:'지아순타 벨파에제',en:"Zi'Assunta Belpaese",w:'vento',desc:'레벨마다 피해량·투사체 속도·지속시간·공격 범위 +0.5%',lv:l=>{const v=(l-1)*0.005;return {might:v,speed:v,duration:v,area:v}}},
+  {id:'sigma',ko:'여왕 시그마',en:'Queen Sigma',w:'sword',desc:'전 능력치 소폭 보너스 (세부 수치 미반영)',chk:true},
+];
+const UNLOCK = {
+  antonio:'처음부터 사용 가능', imelda:'처음부터 해금 (골드로 구매)', pasqualina:'처음부터 해금 (골드로 구매)', gennaro:'처음부터 해금 (골드로 구매)',
+  arca:'한 판에서 불의 지팡이 4레벨 달성', porta:'한 판에서 번개 반지 4레벨 달성', lama:'저주 10% 이상인 상태로 20분 생존',
+  poe:'한 판에서 마늘 7레벨 달성', clerici:'누적 체력 1,000 회복', dommario:'한 판에서 골드 5,000 획득', krochi:'누적 적 100,000마리 처치',
+  christine:'한 판에서 오망성 7레벨 달성', pugnala:'매드 포레스트에서 관(코핀) 열기', giovanna:'화려한 도서관(인레이드 라이브러리)에서 관 열기',
+  poppea:'데어리 플랜트에서 관 열기', concetta:'갈로의 탑에서 관 열기', mortaccio:'누적 스켈레톤 3,000마리 처치', cavallo:'누적 사자 머리 3,000마리 처치',
+  ramba:'누적 밀크 엘리멘탈 3,000마리 처치', osole:'누적 드래곤 슈림프 3,000마리 처치', ambrojoe:'카펠라 마그나에서 스테이지 킬러 6,000마리 처치',
+  gallo:'무한 회랑 획득 (시곗바늘 진화)', divano:'진홍의 망토 획득 (월계수 진화)', assunta:'카펠라 마그나에서 관 열기', sigma:'컬렉션 완성'
+};
+
+// ---------- 상점 파워업 (위키 기준) ----------
+const POWERUPS = [
+  {k:'might',ko:'피해량',per:0.05,max:5,ic:'might'},
+  {k:'armor',ko:'방어력',per:1,max:3,ic:'armor'},
+  {k:'maxhp',ko:'최대 체력',per:0.10,max:3,mult:true,ic:'health'},
+  {k:'recovery',ko:'회복',per:0.1,max:5,ic:'recovery'},
+  {k:'cooldown',ko:'쿨타임',per:-0.025,max:2,ic:'cooldown'},
+  {k:'area',ko:'공격 범위',per:0.05,max:2,ic:'area'},
+  {k:'speed',ko:'투사체 속도',per:0.10,max:2,ic:'speed'},
+  {k:'duration',ko:'지속시간',per:0.15,max:2,ic:'duration'},
+  {k:'amount',ko:'투사체 수',per:1,max:1,ic:'amount'},
+  {k:'movespeed',ko:'이동속도',per:0.05,max:2,ic:'wings'},
+  {k:'magnet',ko:'자석',per:0.25,max:2,mult:true,ic:'magnet'},
+  {k:'luck',ko:'행운',per:0.10,max:3,ic:'luck'},
+  {k:'growth',ko:'성장',per:0.03,max:5,ic:'growth'},
+  {k:'greed',ko:'탐욕',per:0.10,max:5,ic:'greed'},
+  {k:'curse',ko:'저주',per:0.10,max:5,ic:'curse'},
+  {k:'revival',ko:'부활',per:1,max:1,ic:'revival'},
+  {k:'omni',ko:'옴니',per:0.02,max:5,omni:true,ic:'omni'},
+];
+
+// ---------- 장신구 (한글명: 나무위키, 수치: 위키) ----------
+const PASSIVES = [
+  {id:'spinach',ko:'시금치',en:'Spinach',ic:'might',max:5,fx:l=>({might:0.10*l})},
+  {id:'armor',ko:'갑옷',en:'Armor',ic:'armor',max:5,fx:l=>({armor:l})},
+  {id:'hollow',ko:'검은 심장',en:'Hollow Heart',ic:'health',max:5,fx:l=>({maxhpPct:0.20*l})},
+  {id:'pummarola',ko:'붉은 심장',en:'Pummarola',ic:'recovery',max:5,fx:l=>({recovery:0.2*l})},
+  {id:'tome',ko:'빈 책',en:'Empty Tome',ic:'cooldown',max:5,fx:l=>({cooldown:-0.08*l})},
+  {id:'candel',ko:'촛대',en:'Candelabrador',ic:'area',max:5,fx:l=>({area:0.10*l})},
+  {id:'bracer',ko:'팔 보호대',en:'Bracer',ic:'speed',max:5,fx:l=>({speed:0.10*l})},
+  {id:'spellbinder',ko:'주문속박기',en:'Spellbinder',ic:'duration',max:5,fx:l=>({duration:0.10*l})},
+  {id:'duplicator',ko:'복제 반지',en:'Duplicator',ic:'amount',max:2,fx:l=>({amount:l})},
+  {id:'wings',ko:'날개',en:'Wings',ic:'wings',max:5,fx:l=>({movespeed:0.10*l})},
+  {id:'attractorb',ko:'매혹구',en:'Attractorb',ic:'magnet',max:5,fx:l=>({})},
+  {id:'clover',ko:'클로버',en:'Clover',ic:'luck',max:5,fx:l=>({luck:0.10*l})},
+  {id:'crown',ko:'왕관',en:'Crown',ic:'growth',max:5,fx:l=>({growth:0.08*l})},
+  {id:'stonemask',ko:'돌가면',en:'Stone Mask',ic:'greed',max:5,fx:l=>({greed:0.10*l})},
+  {id:'skull',ko:'미치광이의 두개골',en:"Skull O'Maniac",ic:'curse',max:5,fx:l=>({curse:0.10*l})},
+  {id:'tirajisu',ko:'티라미수',en:'Tirajisú',ic:'revival',max:2,fx:l=>({revival:l})},
+  {id:'torrona',ko:'토로나의 상자',en:"Torrona's Box",ic:'torrona',max:9,fx:l=>{const o=l<=0?0:Math.min(0.04+0.03*(Math.min(l,8)-1),0.25);return {might:o,speed:o,duration:o,area:o,curse:l>=9?1:0}}},
+  {id:'silverring',ko:'은 반지',en:'Silver Ring',ic:'ring1',max:9,fx:l=>{const v=Math.max(0,l-1)*0.05;return {duration:v,area:v}}},
+  {id:'goldring',ko:'금 반지',en:'Gold Ring',ic:'ring2',max:9,fx:l=>({curse:Math.max(0,l-1)*0.05})},
+  {id:'metaL',ko:'좌 메탈리오',en:'Metaglio Left',ic:'sign1',max:9,fx:l=>({recovery:0.1*Math.max(0,l-1)}),hpMult:l=>Math.pow(1.05,Math.max(0,l-1))},
+  {id:'metaR',ko:'우 메탈리오',en:'Metaglio Right',ic:'sign2',max:9,fx:l=>({curse:Math.max(0,l-1)*0.05})},
+];
+
+// ---------- 무기 (한글명·레벨업: 나무위키 / 무시 능력치: 위키) ----------
+// b: 1레벨 기본값 {dmg,cd,amt,area,speed,dur,pierce} / lvl: 2레벨부터의 증가분
+const WEAPONS = [
+  {id:'whip',ko:'채찍',en:'Whip',ic:'whip',max:8,ign:['speed','duration'],b:{dmg:10,cd:1.35,amt:1},evo:{p:['hollow'],to:'피눈물'},
+   lvl:[{amt:1},{dmg:5},{dmg:5,area:.1},{dmg:5},{dmg:5,area:.1},{dmg:5},{dmg:5}]},
+  {id:'wand',ko:'마법 지팡이',en:'Magic Wand',ic:'magicwand',max:8,ign:['duration'],b:{dmg:10,cd:1.2,amt:1,pierce:1},evo:{p:['tome'],to:'신성한 지팡이'},
+   lvl:[{amt:1},{cd:-0.2},{amt:1},{dmg:10},{amt:1},{pierce:1},{dmg:10}]},
+  {id:'knife',ko:'단검',en:'Knife',ic:'knife',max:8,ign:['duration'],b:{dmg:6.5,cd:1,amt:1,pierce:1},evo:{p:['bracer'],to:'천 개의 칼날'},
+   lvl:[{amt:1},{amt:1,dmg:5},{amt:1},{pierce:1},{amt:1},{amt:1,dmg:5},{pierce:1}]},
+  {id:'axe',ko:'도끼',en:'Axe',ic:'axe',max:8,ign:['duration'],b:{dmg:20,cd:4,amt:1,pierce:3},evo:{p:['candel'],to:'죽음의 나선'},
+   lvl:[{amt:1},{dmg:20},{pierce:2},{amt:1},{dmg:20},{pierce:2},{dmg:20}]},
+  {id:'cross',ko:'십자가',en:'Cross',ic:'cross',max:8,ign:['duration'],b:{dmg:5,cd:2,amt:1},evo:{p:['clover'],to:'천상의 검'},
+   lvl:[{dmg:10},{speed:.25,area:.1},{amt:1},{dmg:10},{speed:.25,area:.1},{amt:1},{dmg:10}]},
+  {id:'bible',ko:'성경',en:'King Bible',ic:'bible',max:8,ign:[],b:{dmg:10,cd:3,amt:1,dur:3},evo:{p:['spellbinder'],to:'불경한 기도문'},
+   lvl:[{amt:1},{speed:.30,area:.25},{dur:.5,dmg:10},{amt:1},{speed:.30,area:.25},{dur:.5,dmg:10},{amt:1}]},
+  {id:'firewand',ko:'불의 지팡이',en:'Fire Wand',ic:'firewand',max:8,ign:['duration'],b:{dmg:20,cd:3,amt:3,speed:.75},evo:{p:['spinach'],to:'헬파이어'},
+   lvl:[{dmg:10},{dmg:10,speed:.2},{dmg:10},{dmg:10,speed:.2},{dmg:10},{dmg:10,speed:.2},{dmg:10}]},
+  {id:'garlic',ko:'마늘',en:'Garlic',ic:'garlic',max:8,ign:['amount','duration','speed'],b:{dmg:5,cd:1.3},evo:{p:['pummarola'],to:'영혼 포식자'},
+   lvl:[{area:.4,dmg:2},{cd:-0.1,dmg:1},{area:.2,dmg:1},{cd:-0.1,dmg:2},{area:.2,dmg:1},{cd:-0.1,dmg:1},{area:.2,dmg:2}]},
+  {id:'santa',ko:'성수',en:'Santa Water',ic:'water',max:8,ign:['speed'],b:{dmg:10,cd:4.5,amt:1,dur:2},evo:{p:['attractorb'],to:'정화자'},
+   lvl:[{amt:1,area:.2},{dmg:10,dur:.5},{amt:1,area:.2},{dmg:10,dur:.25},{amt:1,area:.2},{dmg:10,dur:.25},{dmg:5,area:.2}]},
+  {id:'rune',ko:'룬트레이서',en:'Runetracer',ic:'runetracer',max:8,ign:[],b:{dmg:10,cd:3,amt:1,dur:2.25},evo:{p:['armor'],to:'절멸'},
+   lvl:[{dmg:5,speed:.2},{dmg:5,dur:.25},{amt:1},{dmg:5,speed:.2},{dmg:5,dur:.25},{amt:1},{dur:.5}]},
+  {id:'lightning',ko:'번개 반지',en:'Lightning Ring',ic:'lightning',max:8,ign:['speed','duration'],b:{dmg:15,cd:4.5,amt:2},evo:{p:['duplicator'],to:'번개 고리'},
+   lvl:[{amt:1},{area:1,dmg:10},{amt:1},{area:1,dmg:20},{amt:1},{area:1,dmg:20},{amt:1}]},
+  {id:'pentagram',ko:'오망성',en:'Pentagram',ic:'pentagram',max:8,ign:['might','speed','duration','area','amount'],b:{cd:90},evo:{p:['crown'],to:'매혹의 달'},
+   lvl:[{cd:-10},{},{cd:-10},{},{cd:-5},{},{cd:-5}]},
+  {id:'peachone',ko:'하얀 비둘기',en:'Peachone',ic:'bird1',max:8,ign:[],b:{dmg:10,cd:1,amt:4,speed:.8,dur:4},evo:{w:'ebony',to:'파괴자 (유니온)'},
+   lvl:[{amt:1,area:.4},{amt:1,dmg:10},{amt:1,cd:-0.25},{amt:1,area:.4},{amt:1,dmg:10},{amt:1,cd:-0.25},{amt:1,area:.4}]},
+  {id:'ebony',ko:'검은 비둘기',en:'Ebony Wings',ic:'bird2',max:8,ign:[],b:{dmg:10,cd:1,amt:4,speed:.8,dur:4},evo:{w:'peachone',to:'파괴자 (유니온)'},
+   lvl:[{amt:1,area:.4},{amt:1,dmg:10},{amt:1,cd:-0.25},{amt:1,area:.4},{amt:1,dmg:10},{amt:1,cd:-0.25},{amt:1,area:.4}]},
+  {id:'phiera',ko:'피에라 데 투펠로',en:'Phiera Der Tuphello',ic:'guns1',max:8,ign:['duration'],b:{dmg:5,cd:1.4,amt:1,pierce:1},evo:{w:'eight',p:['tirajisu'],to:'피에라지 (유니온)'},
+   lvl:[{amt:1},{pierce:2},{amt:1},{dmg:5},{pierce:2},{speed:.5,dmg:5},{pierce:2}]},
+  {id:'eight',ko:'에잇 더 스패로우',en:'Eight The Sparrow',ic:'guns2',max:8,ign:['duration'],b:{dmg:5,cd:1.4,amt:1,pierce:1},evo:{w:'phiera',p:['tirajisu'],to:'피에라지 (유니온)'},
+   lvl:[{amt:1},{pierce:2},{amt:1},{dmg:5},{pierce:2},{speed:.5,dmg:5},{pierce:2}]},
+  {id:'gatti',ko:'마녀의 고양이',en:'Gatti Amari',ic:'cat',max:8,ign:[],b:{dmg:10,cd:5,amt:1,speed:.4,dur:5},evo:{p:['stonemask'],to:'흉포한 굶주림'},
+   lvl:[{speed:.2},{dur:1.5},{speed:.2},{amt:1},{dur:1.5},{speed:.2},{amt:1}]},
+  {id:'song',ko:'마나의 노래',en:'Song of Mana',ic:'mana',max:8,ign:['speed','amount'],b:{dmg:10,cd:2,dur:.5},evo:{p:['skull'],to:'마력의 결정체'},
+   lvl:[{area:1},{cd:.75,dur:.5},{dmg:10,area:.25},{cd:.75,dur:.5},{dmg:10,area:.25},{cd:.75,dur:.5},{dmg:10,area:.25}]},
+  {id:'pinion',ko:'검은 드릴',en:'Shadow Pinion',ic:'pinion',max:8,ign:[],b:{dmg:10,cd:6,amt:1,dur:1},evo:{p:['wings'],to:'발키리 터너'},
+   lvl:[{amt:1},{dmg:5},{dur:.25},{dmg:5},{dur:.25},{dmg:5},{dur:.25}]},
+  {id:'clock',ko:'시곗바늘',en:'Clock Lancet',ic:'lancet',max:7,ign:['might','speed','amount','area'],b:{cd:2,dur:2},evo:{p:['silverring','goldring'],pmax:true,to:'무한 회랑'},
+   lvl:[{dur:1},{cd:-0.5},{dur:1},{dur:1},{cd:-0.5},{dur:1}]},
+  {id:'laurel',ko:'월계수',en:'Laurel',ic:'laurel',max:7,ign:['might','speed','duration','area','amount'],b:{cd:10},evo:{p:['metaL','metaR'],pmax:true,to:'진홍의 망토'},
+   lvl:[{cd:-0.5},{cd:-0.5},{},{cd:-0.5},{cd:-0.5},{}]},
+  {id:'vento',ko:'성스러운 바람',en:'Vento Sacro',ic:'vento',max:8,ign:[],b:{dmg:2,cd:2,amt:4,area:1.4,dur:.4},evo:{needEvo:'whip',to:'붉은장미 덩쿨 (유니온)'},
+   lvl:[{dmg:1},{area:.2,amt:1},{dmg:1},{area:.2,amt:1},{dmg:1},{area:.2,amt:1},{dmg:1}]},
+  {id:'bone',ko:'뼈',en:'Bone',ic:'bone',max:8,ign:[],b:{dmg:5,cd:3,amt:1,area:1.2,speed:.75,dur:2},
+   lvl:[{dur:.2,area:.2},{dmg:20,amt:1},{speed:.5,area:.2},{dmg:20,amt:1},{dur:.2},{dmg:20},{dur:.2,speed:.5}]},
+  {id:'cherry',ko:'체리폭탄',en:'Cherry Bomb',ic:'cherry',max:8,ign:[],b:{dmg:10,cd:3,amt:1,dur:2},
+   lvl:[{area:.25,speed:.3},{},{amt:1},{area:.25,dmg:5},{},{area:.25,speed:.3},{area:.25,dmg:5}]},
+  {id:'carrello',ko:'광산수레',en:'Carréllo',ic:'cart',max:8,ign:['duration'],b:{dmg:10,cd:5.5,amt:2,area:.6},
+   lvl:[{area:.2},{dmg:30,cd:.3},{speed:.5},{dmg:30,cd:.3},{area:.2},{dmg:30,cd:.3},{speed:.5}]},
+  {id:'celestial',ko:'천상의 꽃',en:'Celestial Dusting',ic:'flowers',max:8,ign:['speed'],b:{dmg:5,cd:6,amt:1,speed:.7},
+   lvl:[{dur:1},{speed:.3},{dmg:5},{speed:.3},{amt:1},{speed:.3},{}]},
+  {id:'larobba',ko:'라 로바',en:'La Robba',ic:'furniture',max:8,ign:[],b:{dmg:10,cd:4.5,amt:3,dur:2},
+   lvl:[{amt:1,dur:.25},{dmg:10},{amt:1,dur:.25},{dmg:10,speed:.5},{amt:1,dur:.25},{dmg:10},{amt:1,dur:.25}]},
+  {id:'bracelet',ko:'팔찌',en:'Bracelet',ic:'bracelet',max:6,ign:[],b:{dmg:10,cd:1.4,amt:3,area:.9,speed:1.5,dur:.4,pierce:1},evo:{to:'이중 팔찌 (기프트)'},
+   lvl:[{dmg:10},{pierce:1},{amt:1,area:.1},{pierce:1},{dmg:10}]},
+  {id:'sword',ko:'승리의 검',en:'Victory Sword',ic:'sword',max:12,ign:['speed','duration'],b:{dmg:5,cd:1.85,amt:2,area:1.4},evo:{p:['torrona'],pmax:true,keep:true,to:'주요한 해결책 (추가 무기)'},
+   lvl:[{amt:1},{dmg:5,area:.2},{amt:1},{dmg:10,area:.2},{amt:1},{dmg:10,area:.2},{},{dmg:10},{cd:-0.25},{cd:-0.25},{cd:-0.25}]},
+];
+const W = Object.fromEntries(WEAPONS.map(w=>[w.id,w]));
+const P = Object.fromEntries(PASSIVES.map(p=>[p.id,p]));
+const C = Object.fromEntries(CHARS.map(c=>[c.id,c]));
+
+// ---------- 상태 ----------
+const blank = () => ({char:'antonio', lv:1, pu:{}, w:[['whip',1],['',1],['',1],['',1],['',1],['',1]], p:[['',1],['',1],['',1],['',1],['',1],['',1]]});
+let S = blank();
+try{ const saved = localStorage.getItem('vs-sim-state-v2'); if(saved){ const o = JSON.parse(saved); if(o && C[o.char]) S = Object.assign(blank(), o); } }catch(e){}
+const save = () => { try{ localStorage.setItem('vs-sim-state-v2', JSON.stringify(S)); }catch(e){} };
+
+// ---------- 계산 ----------
+function compute(state, lvOverride){
+  const c = C[state.char] || CHARS[0];
+  const lv = lvOverride ?? state.lv;
+  const src = {}; STATS.forEach(s=>src[s.k]=[]);
+  const put = (k,v,from) => { if(!v || !src[k] && k!=='maxhpPct') return; (src[k]=src[k]||[]).push([from,v]); };
+  Object.entries(c.base||{}).forEach(([k,v])=>put(k,v,'캐릭터'));
+  if(c.lv) Object.entries(c.lv(lv)).forEach(([k,v])=>put(k,v,'레벨 보너스'));
+  let hpMult=1, magMult=1, hpMultSrc=[];
+  POWERUPS.forEach(pu=>{
+    const r = state.pu[pu.k]||0; if(!r) return;
+    if(pu.omni){ ['might','speed','duration','area'].forEach(k=>put(k,pu.per*r,'파워업 옴니')); return; }
+    if(pu.k==='maxhp'){ const m=Math.pow(1+pu.per,r); hpMult*=m; hpMultSrc.push(['파워업',m]); return; }
+    if(pu.k==='magnet'){ magMult*=Math.pow(1+pu.per,r); return; }
+    put(pu.k, pu.per*r, '파워업');
+  });
+  state.p.forEach(([id,l])=>{ const p=P[id]; if(!p) return; Object.entries(p.fx(l)).forEach(([k,v])=>put(k,v,p.ko)); if(p.hpMult){ const m=p.hpMult(l); if(m>1){ hpMult*=m; hpMultSrc.push([p.ko,m]); } } });
+  const sum = k => (src[k]||[]).reduce((a,[,v])=>a+v,0);
+  const res = {};
+  STATS.forEach(s=>{
+    const parts = src[s.k]||[];
+    let pen = parts.filter(([,v])=>v<0).reduce((a,[,v])=>a+v,0);
+    let inc = parts.filter(([,v])=>v>0).reduce((a,[,v])=>a+v,0);
+    let fin = s.base + pen + inc, base = s.base, notes = parts.map(([f,v])=>[f,v]);
+    if(s.k==='maxhp'){
+      const flat = c.hpFlat||0; pen = Math.min(0,flat); const b0 = 100+flat;
+      const pctAdd = sum('maxhpPct');
+      fin = b0*(1+pctAdd)*hpMult;
+      inc = fin - (100+pen);
+      notes = []; if(flat) notes.push(['캐릭터',flat]);
+      (src.maxhpPct||[]).forEach(([f,v])=>notes.push([f,'+'+Math.round(v*100)+'%']));
+      hpMultSrc.forEach(([f,m])=>notes.push([f,'×'+m.toFixed(3)]));
+    }
+    if(s.k==='cooldown'){ fin = Math.max(0.1, fin); }
+    if(s.k==='magnet'){ const add = 1+pen+inc; fin = add*magMult; inc = fin - (1+pen); if(magMult>1) notes.push(['파워업','×'+magMult.toFixed(4)]); }
+    res[s.k] = {base, pen, inc, fin, notes};
+  });
+  return {res, c};
+}
+const out = r => Object.fromEntries(Object.entries(r.res).map(([k,v])=>[k,v.fin]));
+
+function weaponStats(w, wl, st, evolved){
+  const ev = evolved && EVO_STATS[w.id];
+  const t = Object.assign({dmg:null,cd:null,amt:null,area:1,speed:1,dur:null,pierce:null}, ev || w.b);
+  (ev?[]:(w.lvl||[])).slice(0, Math.max(0,wl-1)).forEach(u=>{
+    for(const k of ['dmg','cd','amt','dur','pierce']) if(u[k]!=null){ t[k]=(t[k]??0)+u[k]; }
+    if(u.area) t.area+=u.area; if(u.speed) t.speed+=u.speed;
+  });
+  const ig = k => w.ign.includes(k);
+  const rows = [
+    {k:'피해량(1타)', base:t.dmg, v: t.dmg==null?null:t.dmg*(ig('might')?1:st.might), ign:ig('might'), f:x=>(Math.round(x*10)/10).toString()},
+    {k:'투사체 수', base:t.amt, v: t.amt==null?null:t.amt+(ig('amount')?0:st.amount), ign:ig('amount'), f:x=>x},
+    {k:'공격 범위', base:t.area, v:t.area*(ig('area')?1:st.area), ign:ig('area'), f:x=>Math.round(x*100)+'%'},
+    {k:'투사체 속도', base:t.speed, v:t.speed*(ig('speed')?1:st.speed), ign:ig('speed'), f:x=>Math.round(x*100)+'%'},
+    {k:'지속시간', base:t.dur, v: t.dur==null?null:t.dur*(ig('duration')?1:st.duration), ign:ig('duration'), f:x=>x.toFixed(2)+'초'},
+    {k:'쿨타임', base:t.cd, v: t.cd==null?null:t.cd*st.cooldown, ign:false, f:x=>x.toFixed(2)+'초'},
+  ];
+  if(t.pierce!=null) rows.push({k:'관통 수', base:t.pierce, v:t.pierce, ign:false, f:x=>x});
+  return rows;
+}
+
+// ---------- 화면 ----------
+const $ = id => document.getElementById(id);
+const fmt = (s,v) => s.t==='pct' ? (Math.round(v*1000)/10)+'%' : s.t==='flat' ? Math.round(v) : s.t==='rec' ? (Math.round(v*100)/100)+'/초' : (Math.round(v*100)/100);
+const fmtD = (s,v) => s.t==='pct' ? (Math.round(Math.abs(v)*1000)/10)+'%' : s.t==='flat' ? Math.round(Math.abs(v)) : (Math.round(Math.abs(v)*100)/100);
+const fmtPart = (s,v) => typeof v==='string' ? v : (v>0?'+':'−')+fmtD(s,v);
+
+function buildStatic(){
+  $('wslots').innerHTML = S.w.map((_,i)=>`<div class="slot"><button class="pick" data-pw="${i}" aria-haspopup="dialog"></button><select data-wl="${i}" aria-label="무기 ${i+1} 레벨"></select></div>`).join('');
+  $('pslots').innerHTML = S.p.map((_,i)=>`<div class="slot"><button class="pick" data-pp="${i}" aria-haspopup="dialog"></button><select data-pl="${i}" aria-label="장신구 ${i+1} 레벨"></select></div>`).join('');
+  $('chartStat').innerHTML = STATS.map(s=>`<option value="${s.k}">${s.ko}</option>`).join('');
+  $('chartStat').value = 'might';
+}
+function lvOptions(sel, max, cur){ sel.innerHTML = Array.from({length:max},(_,i)=>`<option value="${i+1}">Lv ${i+1}</option>`).join(''); sel.value = Math.min(cur,max); }
+const pickHTML = (ic, ko, en, emptyText) => ko
+  ? `${icon(ic)}<span class="nm">${ko}<span class="en">${en}</span></span><span class="car">▾</span>`
+  : `<span class="nm">${emptyText}</span><span class="car">▾</span>`;
+
+function render(){
+  const R = compute(S); const st = out(R);
+  const c = R.c;
+  $('charPick').innerHTML = `${icon(c.id,'lg')}<span class="nm"><b>${c.ko}</b><span class="en">${c.en}</span></span><span class="car">▾</span>`;
+  $('lv').value = S.lv; $('lvOut').textContent = S.lv;
+  const sw = W[c.w], sw2 = c.w2?W[c.w2]:null;
+  $('charInfo').innerHTML = `<b>시작 무기</b> ${sw?icon(sw.ic,'sm')+' '+sw.ko:'—'}${sw2?' + '+icon(sw2.ic,'sm')+' '+sw2.ko:''} · <b>최대 체력</b> ${100+(c.hpFlat||0)}<br><b>고유 패시브</b> ${c.desc}${c.chk?' <span class="badge warn">확인 필요</span>':''}<br><b>해금 조건</b> ${UNLOCK[c.id]||'—'}`;
+  $('pu').innerHTML = POWERUPS.map(pu=>{ const r=S.pu[pu.k]||0; return `<div class="it">${icon(pu.ic,'sm')}<span class="t">${pu.ko}</span><span class="pips">${Array.from({length:pu.max},(_,i)=>`<button class="pip ${i<r?'on':''}" data-pu="${pu.k}" data-r="${i+1}" aria-label="${pu.ko} ${i+1}단계"></button>`).join('')}</span></div>`}).join('');
+  S.w.forEach(([id,l,ev],i)=>{ const b=document.querySelector(`[data-pw="${i}"]`); const w=W[id]; const isEv=w&&ev&&!w.evo.keep; b.className='pick'+(w?'':' empty'); b.innerHTML=isEv?pickHTML(EVO_IC[id], EVO_NAME(id), w.ko+'의 진화', ''):pickHTML(w&&w.ic, w&&w.ko, w&&w.en, `무기 ${i+1} — 비어 있음`); const ls=document.querySelector(`[data-wl="${i}"]`); if(isEv){ ls.innerHTML='<option>진화</option>'; ls.disabled=true; } else { lvOptions(ls, w?w.max:8, l); ls.disabled=!w; } });
+  S.p.forEach(([id,l],i)=>{ const b=document.querySelector(`[data-pp="${i}"]`); const p=P[id]; b.className='pick'+(p?'':' empty'); b.innerHTML=pickHTML(p&&p.ic, p&&p.ko, p&&p.en, `장신구 ${i+1} — 비어 있음`); const ls=document.querySelector(`[data-pl="${i}"]`); lvOptions(ls, p?p.max:5, l); ls.disabled=!p; });
+  // 능력치
+  $('stats').innerHTML = STATS.map(s=>{
+    const r = R.res[s.k]; const diff = r.fin - s.base;
+    let cls=''; if(Math.abs(diff)>1e-9){ cls = (s.lowGood ? diff<0 : diff>0) ? 'up' : 'down'; }
+    const baseTxt = s.k==='maxhp' ? '100' : fmt(s, s.base);
+    const pen = Math.abs(r.pen)>1e-9 ? ` <span class="pen">−${fmtD(s,r.pen)}</span>` : ` <span class="zero">−0</span>`;
+    const inc = Math.abs(r.inc)>1e-9 ? ` <span class="inc">+${fmtD(s,r.inc)}</span>` : ` <span class="zero">+0</span>`;
+    const notes = r.notes.map(([f,v])=>`${f} ${fmtPart(s,v)}`).join(' · ') || '기본값';
+    return `<div class="stat ${cls}" title="${notes}"><div class="k">${icon(s.ic)}${s.ko}<span class="fin">${fmt(s,r.fin)}</span></div><div class="eq">${baseTxt}${pen}${inc}</div></div>`;
+  }).join('');
+  // 진화
+  const ownedW = Object.fromEntries(S.w.filter(x=>x[0]).map(([id,l])=>[id,l]));
+  const ownedP = Object.fromEntries(S.p.filter(x=>x[0]).map(([id,l])=>[id,l]));
+  const evoed = id => S.w.some(x=>x[0]===id && x[2]);
+  const rows = [], seen = new Set();
+  const recipe = w => `${icon(w.ic)}<b>${w.ko}</b>${(w.evo.w?[W[w.evo.w]]:[]).map(x=>`<span class="arr">+</span>${icon(x.ic)}<b>${x.ko}</b>`).join('')}${w.evo.needEvo?`<span class="arr">+</span>${icon(EVO_IC[w.evo.needEvo])}<b>${EVO_NAME(w.evo.needEvo)}</b>`:''}${(w.evo.p||[]).map(pid=>`<span class="arr">+</span>${icon(P[pid].ic)}<b>${P[pid].ko}</b>`).join('')}<span class="arr">→</span>${icon(EVO_IC[w.id],'lg')}<b class="to">${w.evo.to}</b>`;
+  S.w.forEach(([id,l,ev],i)=>{
+    const w=W[id]; if(!w||!w.evo) return;
+    if(w.evo.w && seen.has(w.evo.to)) return; seen.add(w.evo.to);
+    if(ev){ rows.push(`<div class="evo done"><div class="flow">${recipe(w)}<button class="act" data-unevo="${i}">되돌리기</button></div><div class="ds">진화 완료. 아래 무기별 최종 수치에 진화 후 능력치가 반영되어 있습니다.</div></div>`); return; }
+    const need=[]; let ready = l>=w.max; if(!ready) need.push(`${w.ko} 최대 레벨(${w.max})`);
+    (w.evo.p||[]).forEach(pid=>{ const has=ownedP[pid]; const okP = has && (!w.evo.pmax || has>=P[pid].max); if(!okP){ ready=false; need.push(P[pid].ko+(w.evo.pmax?' 최대 레벨':' 보유')); } });
+    if(w.evo.w){ const o=ownedW[w.evo.w]; if(!(o && o>=W[w.evo.w].max)){ ready=false; need.push(`${W[w.evo.w].ko} 최대 레벨`); } }
+    if(w.evo.needEvo && !evoed(w.evo.needEvo)){ ready=false; need.push(`${EVO_NAME(w.evo.needEvo)}(진화된 ${W[w.evo.needEvo].ko}) 보유`); }
+    rows.push(ready ? `<div class="evo ok"><div class="flow">${recipe(w)}<button class="act" data-evo="${i}">진화 적용</button></div><div class="ds">${EVO_DESC[w.id]||''} 조건을 모두 갖췄으니 보스 상자를 열면 진화합니다.</div></div>`
+                    : `<div class="evo no">${icon(w.ic)}<span>${w.ko} → ${w.evo.to}: ${need.join(', ')} 필요</span></div>`);
+  });
+  $('evo').innerHTML = rows.length ? rows.join('') : '<p class="empty">무기를 고르면 진화 조건을 확인해 드립니다.</p>';
+  // 무기 카드
+  const cards = S.w.filter(x=>x[0]).map(([id,l,ev])=>{
+    const w=W[id]; const isEv = ev && !w.evo.keep; const rs=weaponStats(w,l,st,isEv);
+    const head = isEv ? `${icon(EVO_IC[id])} ${EVO_NAME(id)} <span class="badge evod">진화</span>` : `${icon(w.ic)} ${w.ko} <span class="badge">Lv ${l}/${w.max}</span>${ev&&w.evo.keep?' <span class="badge evod">+'+EVO_NAME(id)+'</span>':''}`;
+    return `<div class="wcard"><h3>${head}</h3>
+      <table class="wtab"><thead><tr><th>항목</th><th style="text-align:right">무기 자체</th><th style="text-align:right">최종</th></tr></thead><tbody>${rs.map(r=>`<tr class="${r.ign?'ign':''}"><td>${r.k}${r.ign?' (영향 없음)':''}</td><td class="num">${r.base==null?'—':r.f(r.base)}</td><td class="num">${r.v==null?'—':r.f(r.v)}</td></tr>`).join('')}</tbody></table></div>`;
+  });
+  $('weapons').innerHTML = cards.length ? cards.join('') : '<p class="empty">무기를 고르면 최종 피해량·범위·쿨타임을 보여 드립니다.</p>';
+  drawChart(); save();
+}
+
+function drawChart(){
+  const key = $('chartStat').value; const s = STATS.find(x=>x.k===key);
+  const maxL=80, W0=640, H0=160, L=52, Rm=12, T=10, B=24;
+  const pts=[]; for(let l=1;l<=maxL;l++) pts.push(compute(S,l).res[key].fin);
+  let lo=Math.min(...pts), hi=Math.max(...pts); if(hi-lo<1e-6){ lo-=(Math.abs(lo)*0.1||1); hi+=(Math.abs(hi)*0.1||1); }
+  const x=l=>L+(l-1)/(maxL-1)*(W0-L-Rm), y=v=>T+(1-(v-lo)/(hi-lo))*(H0-T-B);
+  let g=''; for(let i=0;i<=4;i++){ const v=lo+(hi-lo)*i/4; g+=`<line x1="${L}" x2="${W0-Rm}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${fmt(s,v)}</text>`; }
+  [1,20,40,60,80].forEach(l=>g+=`<text x="${x(l)}" y="${H0-6}" text-anchor="middle">Lv ${l}</text>`);
+  const path=pts.map((v,i)=>`${i?'L':'M'}${x(i+1).toFixed(1)},${y(v).toFixed(1)}`).join('');
+  const cur=Math.min(S.lv,maxL);
+  g+=`<path d="${path}" fill="none" stroke="var(--blood)" stroke-width="2.5"/><circle cx="${x(cur)}" cy="${y(pts[cur-1])}" r="5" fill="var(--gold)"/>`;
+  $('chart').innerHTML = g;
+}
+
+// ---------- 선택 팝업 ----------
+let popCtx = null;
+function openPop(kind, idx, anchor){
+  popCtx = {kind, idx, anchor};
+  let title, items, cur, used = new Set();
+  if(kind==='char'){ title='캐릭터 선택'; items=CHARS.map(c=>({id:c.id,ic:c.id,ko:c.ko,en:c.en})); cur=S.char; }
+  if(kind==='w'){ title=`무기 ${idx+1} 선택`; items=WEAPONS.map(w=>({id:w.id,ic:w.ic,ko:w.ko,en:w.en})); cur=S.w[idx][0]; S.w.forEach(([id],i)=>{ if(id && i!==idx) used.add(id); }); }
+  if(kind==='p'){ title=`장신구 ${idx+1} 선택`; items=PASSIVES.map(p=>({id:p.id,ic:p.ic,ko:p.ko,en:p.en})); cur=S.p[idx][0]; S.p.forEach(([id],i)=>{ if(id && i!==idx) used.add(id); }); }
+  $('popTitle').textContent = title;
+  let html = items.map(it=>`<button class="opt ${it.id===cur?'cur':''}" data-opt="${it.id}" ${used.has(it.id)?'disabled title="다른 칸에서 이미 선택됨"':''}>${icon(it.ic)}<span>${it.ko}${used.has(it.id)?'<span class="on">선택됨</span>':''}</span></button>`).join('');
+  if(kind!=='char') html = `<button class="opt" data-opt="">— 비우기</button>` + html;
+  $('popGrid').innerHTML = html;
+  const pop=$('pop'); pop.hidden=false;
+  const r = anchor.getBoundingClientRect(); const pw = pop.offsetWidth, ph = pop.offsetHeight;
+  let left = Math.min(Math.max(12, r.left), window.innerWidth - pw - 12);
+  let top = r.bottom + 6; if(top + ph > window.innerHeight - 12) top = Math.max(12, r.top - ph - 6);
+  pop.style.left = left+'px'; pop.style.top = top+'px';
+  (pop.querySelector('.opt.cur')||pop.querySelector('.opt:not([disabled])')).focus();
+}
+function closePop(){ $('pop').hidden=true; if(popCtx&&popCtx.anchor) popCtx.anchor.focus(); popCtx=null; }
+function choose(id){
+  const {kind, idx} = popCtx;
+  if(kind==='char'){
+    S.char=id; const c=C[id];
+    const starts=[c.w].concat(c.w2?[c.w2]:[]);
+    S.w = S.w.map(x=> starts.includes(x[0]) ? ['',1] : x);
+    starts.forEach((wid,i)=>{ S.w[i] = [wid,1]; });
+  }
+  if(kind==='w') S.w[idx] = [id,1];
+  if(kind==='p') S.p[idx] = [id,1];
+  closePop(); render();
+}
+
+// ---------- 이벤트 ----------
+buildStatic();
+$('charPick').addEventListener('click', e=>openPop('char',0,e.currentTarget));
+document.addEventListener('click', e=>{
+  const pw=e.target.closest('[data-pw]'); if(pw){ openPop('w',+pw.dataset.pw,pw); return; }
+  const pp=e.target.closest('[data-pp]'); if(pp){ openPop('p',+pp.dataset.pp,pp); return; }
+  const op=e.target.closest('[data-opt]'); if(op && !op.disabled){ choose(op.dataset.opt); return; }
+  const ev=e.target.closest('[data-evo]'); if(ev){ const i=+ev.dataset.evo, w=W[S.w[i][0]]; S.w[i][2]=true;
+    const drop = w.evo.w || w.evo.needEvo; if(drop) S.w = S.w.map((x,j)=> j!==i && x[0]===drop ? ['',1] : x);
+    render(); return; }
+  const ue=e.target.closest('[data-unevo]'); if(ue){ S.w[+ue.dataset.unevo][2]=false; render(); return; }
+  const pu=e.target.closest('[data-pu]'); if(pu){ const k=pu.dataset.pu, r=+pu.dataset.r; S.pu[k]=(S.pu[k]===r)?r-1:r; render(); return; }
+  if(!$('pop').hidden && !e.target.closest('#pop') && !e.target.closest('#charPick')) closePop();
+});
+$('popClose').addEventListener('click', closePop);
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !$('pop').hidden) closePop(); });
+window.addEventListener('resize', ()=>{ if(!$('pop').hidden) closePop(); });
+document.addEventListener('change', e=>{
+  const d=e.target.dataset;
+  if(e.target.id==='chartStat'){ drawChart(); return; }
+  if(d.wl!=null){ S.w[+d.wl][1]=+e.target.value; render(); }
+  if(d.pl!=null){ S.p[+d.pl][1]=+e.target.value; render(); }
+});
+$('lv').addEventListener('input', e=>{ S.lv=+e.target.value; render(); });
+$('btnMax').addEventListener('click', ()=>{ POWERUPS.forEach(p=>{ if(p.k!=='curse') S.pu[p.k]=p.max; }); render(); });
+$('btnReset').addEventListener('click', ()=>{ S=blank(); render(); });
+render();
+</script>
+</body>
+</html>
